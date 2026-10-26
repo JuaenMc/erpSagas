@@ -1,0 +1,6 @@
+{
+  "name": "Sagas Moda - ERP Hub & Gestão Multicanal",
+  "description": "ERP e Hub Omnichannel da Sagas Moda para gestão de combos flexíveis, ofertas relâmpago, publicador multicanal e automação de etiquetas térmicas 10x15cm.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

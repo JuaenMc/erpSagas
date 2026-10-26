@@ -1,0 +1,842 @@
+// ============================================================================
+// SAGAS.MODA — ENTERPRISE OMNICHANNEL ERP (M01 A M25)
+// PostgreSQL 16 + pgcrypto | Multi-Tenant Ready | Audit & Soft-Delete Padrão
+// ============================================================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgcrypto]
+}
+
+// ============================================================================
+// ENUMS GLOBAIS (M01–M25)
+// ============================================================================
+
+enum RoleType {
+  SUPER_ADMIN
+  ADMIN
+  FINANCEIRO
+  COMPRAS
+  ESTOQUISTA
+  EXPEDICAO
+  ATENDIMENTO_SAC
+  MARKETING
+  VENDEDOR_PDV
+}
+
+enum ProductType {
+  SIMPLE          // Produto sem grade
+  VARIABLE        // Produto com grade Cor x Tamanho
+  FIXED_KIT       // Kit com composição fixa
+  VARIABLE_KIT    // Kit com escolha em categoria
+  MANUFACTURED    // Produto com ficha técnica (BOM)
+}
+
+enum MarketplaceChannel {
+  APP_SAGAS
+  SHOPEE
+  MERCADO_LIVRE
+  TIKTOK_SHOP
+  PDV_EVENTOS
+}
+
+enum IntegrationCategory {
+  MARKETPLACE
+  LOGISTICS
+  PAYMENT
+  FISCAL_SEFAZ
+  OPEN_FINANCE
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR_EXPIRED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_SYNC
+  PUBLISHED
+  PAUSED_BY_MARGIN // Bloqueado por P2 (Margem < Piso)
+  PAUSED_BY_STOCK
+  ERROR
+}
+
+enum StockMovementType {
+  PURCHASE_IN         // Entrada via NF-e / Pedido de Compra (M14)
+  SALE_OUT            // Baixa por venda (M05)
+  RESERVE_LOCK        // Reserva de checkout / Flash Sale (M12)
+  RESERVE_RELEASE     // Liberação de reserva expirada
+  RETURN_IN_QA        // Retorno de logística reversa p/ inspeção (M08)
+  CYCLE_COUNT_ADJUST  // Ajuste de inventário cíclico (M02)
+  TRANSFER_BETWEEN_WH // Transferência entre depósitos (M02)
+  CONSIGNMENT_IN      // Entrada consignada (M22)
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PICKING             // Em Separação (M06)
+  CHECKED             // Conferido via Bipagem EAN-13 (M06)
+  PACKED              // Embalado + NF-e/Etiqueta 10x15 gerada (M06)
+  SHIPPED             // Postado / Em trânsito (M07)
+  OUT_FOR_DELIVERY    // Saiu para entrega (M07)
+  DELIVERED           // Entregue (M07)
+  RETURN_REQUESTED    // Troca/Devolução solicitada (M08)
+  RETURNED            // Devolvido (M08)
+  CANCELLED
+}
+
+enum ReverseInspectionGrade {
+  GRADE_A_NEW         // Volta p/ estoque normal
+  GRADE_B_OUTLET      // Vai p/ Outlet Circular Second Life (M22)
+  GRADE_C_DEFECT      // Devolução ao fornecedor / descarte (M14)
+}
+
+enum ComboType {
+  FIXED_PRICE         // Ex: 3 peças por R$ 100
+  BUY_X_PAY_Y         // Ex: Leve 3 Pague 2
+  FIXED_BUNDLE        // Ex: Look Mãe + Filha
+  VARIABLE_CATEGORY   // Ex: Escolha 4 peças Infantis
+  PROGRESSIVE_DISCOUNT// Ex: 1=5%, 2=10%, 3+=20%
+}
+
+enum FinancialEntryType {
+  PAYABLE
+  RECEIVABLE
+}
+
+enum FinancialStatus {
+  PENDING
+  PAID
+  OVERDUE
+  RECONCILED_OPEN_FINANCE
+  ANTICIPATED
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT_TO_SUPPLIER
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+enum AutomationTrigger {
+  STOCK_BELOW_MIN
+  ORDER_PAID
+  ORDER_SHIPPED
+  FLASHSALE_ENDED
+  PRODUCT_IDLE_60D
+  MARGIN_BELOW_TARGET
+  LABEL_PRINTED
+}
+
+enum AutomationActionType {
+  PAUSE_CHANNEL_LISTING
+  APPLY_PROGRESSIVE_MARKDOWN
+  CREATE_PURCHASE_ORDER_DRAFT
+  SEND_WHATSAPP_NOTIFICATION
+  SEND_EMAIL_ALERT
+  CREATE_INTERNAL_TASK
+  EQUALIZE_PRICE_TO_TARGET_MARGIN
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CUSTOMER
+  RESOLVED
+  BREACHED_SLA
+}
+
+// ============================================================================
+// M24 & M25: PLATAFORMA, MULTI-TENANCY, SEGURANÇA, RBAC & AUDITORIA
+// ============================================================================
+
+model Tenant {
+  id                  String    @id @default(uuid())
+  name                String    // Ex: "Grupo Sagas Moda Ltda"
+  slug                String    @unique
+  plan                String    @default("ENTERPRISE")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  companies           CompanyEntity[]
+  users               User[]
+  products            Product[]
+  warehouses          Warehouse[]
+  orders              Order[]
+  customers           Customer[]
+}
+
+model CompanyEntity {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  corporateName       String
+  tradeName           String
+  cnpj                String    @unique
+  taxRegime           String    // SIMPLES_NACIONAL_MEI | SIMPLES_NACIONAL_ME | LUCRO_PRESUMIDO
+  ie                  String?
+  uf                  String    @db.Char(2)
+  // [ENCRYPTED AES-256-GCM] Binário do Certificado Digital A1 (.pfx) em S3/Vault + senha cifrada
+  certA1StorageKey    String?
+  certA1PasswordEnc   String?
+  certA1ExpiresAt     DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  @@index([tenantId, cnpj])
+}
+
+model User {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  email               String    @unique
+  // [ENCRYPTED Argon2id] Hash de senha
+  passwordHash        String
+  fullName            String
+  role                RoleType  @default(ATENDIMENTO_SAC)
+  permissionsJson     Json?     // Permissões granulares RBAC por recurso/ação
+  // [ENCRYPTED AES-256-GCM] Segredo TOTP para autenticação 2FA
+  totpSecretEnc       String?
+  isTwoFactorEnabled  Boolean   @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+  createdById         String?
+
+  savedViews          SmartTableView[]
+  auditLogs           AuditLog[]
+
+  @@index([tenantId, role])
+}
+
+// P4: Tabela Append-Only Imutável (Regras de banco bloqueiam UPDATE/DELETE)
+model AuditLog {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  actorUserId         String?
+  actorUser           User?     @relation(fields: [actorUserId], references: [id])
+  entityName          String    // Ex: "ProductChannelPricing", "ChannelFeeConfig", "Order"
+  entityId            String
+  action              String    // CREATE | UPDATE | DELETE | MARGIN_OVERRIDE | PRICE_SYNC
+  beforeState         Json?
+  afterState          Json?
+  ipAddress           String?
+  userAgent           String?
+  createdAt           DateTime  @default(now())
+
+  @@index([tenantId, entityName, entityId, createdAt(sort: Desc)])
+  @@index([actorUserId, createdAt(sort: Desc)])
+}
+
+// ============================================================================
+// M01: CATÁLOGO & PRODUTOS (GRADE MATRICIAL, MÍDIA, FISCAL, TABELA DE MEDIDAS)
+// ============================================================================
+
+model Category {
+  id                  String      @id @default(uuid())
+  tenantId            String
+  parentId            String?
+  parent              Category?   @relation("CategoryTree", fields: [parentId], references: [id])
+  children            Category[]  @relation("CategoryTree")
+  name                String
+  slug                String
+  externalMappings    Json?       // Mapa de IDs de categoria Shopee, ML, TikTok
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  deletedAt           DateTime?
+
+  products            Product[]
+
+  @@index([tenantId, parentId])
+}
+
+model SizeChart {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  name                String    // Ex: "Tabela Infantil Sagas 2 ao 12"
+  measurementsJson    Json      // [{ size: "4", chestCm: [54,58], waistCm: [52,55], heightCm: [105,112] }]
+  returnRateAdjustment Json?    // M16/M19: Fator de correção aprendido por devoluções ("Ficou Pequeno")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  products            Product[]
+}
+
+model Product {
+  id                  String        @id @default(uuid())
+  tenantId            String
+  tenant              Tenant        @relation(fields: [tenantId], references: [id])
+  type                ProductType   @default(VARIABLE)
+  masterSku           String
+  title               String
+  description         String        @db.Text
+  brand               String        @default("sagas.moda")
+  categoryId          String
+  category            Category      @relation(fields: [categoryId], references: [id])
+  sizeChartId         String?
+  sizeChart           SizeChart?    @relation(fields: [sizeChartId], references: [id])
+  collectionId        String?
+  collection          FashionCollection? @relation(fields: [collectionId], references: [id])
+
+  basePrice           Decimal       @db.Decimal(12, 2)
+  costPrice           Decimal       @db.Decimal(12, 2) // CMV médio ponderado
+  weightGrams         Int           @default(250)
+  heightCm            Decimal       @db.Decimal(6, 2)
+  widthCm             Decimal       @db.Decimal(6, 2)
+  depthCm             Decimal       @db.Decimal(6, 2)
+
+  // Dados Fiscais SEFAZ
+  ncm                 String        @db.VarChar(10)
+  cest                String?       @db.VarChar(10)
+  cfopDefault         String        @default("5102")
+  icmsOrigin          Int           @default(0) // 0 = Nacional
+  icmsCstCsosn        String        @default("102")
+
+  // M19: Visão Computacional & SEO IA
+  aiVisualTags        String[]      // Ex: ["floral", "algodao", "verao", "decote-redondo"]
+  aiChannelTitles     Json?         // Títulos otimizados por LLM p/ ML, Shopee e TikTok
+  coverImageUrl       String
+  mediaGallery        Json          // [{ url, ratio: "1:1", channelCroppedUrl }]
+
+  isConsigned         Boolean       @default(false) // M22: Consignado
+  supplierId          String?
+  lastSoldAt          DateTime?     // M16: Detecção de encalhe (60d sem giro)
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  deletedAt           DateTime?
+  createdById         String?
+
+  variations          ProductVariation[]
+  channelPricings     ProductChannelPricing[]
+  channelListings     ChannelListing[]
+
+  @@unique([tenantId, masterSku])
+  @@index([tenantId, categoryId, lastSoldAt])
+}
+
+model ProductVariation {
+  id                  String    @id @default(uuid())
+  productId           String
+  product             Product   @relation(fields: [productId], references: [id])
+  sku                 String
+  barcodeEan13        String    @unique
+  color               String
+  size                String
+  costPriceOverride   Decimal?  @db.Decimal(12, 2)
+  priceOverride       Decimal?  @db.Decimal(12, 2)
+  leadTimeDays        Int       @default(12)
+  dailySalesVelocity  Decimal   @default(0) @db.Decimal(8, 2) // M14/M16: Giro diário calculado
+  returnRatePct       Decimal   @default(0) @db.Decimal(5, 2) // M16: Taxa de devolução da variação
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+
+  stocks              WarehouseStock[]
+  orderItems          OrderItem[]
+  purchaseOrderItems  PurchaseOrderItem[]
+
+  @@unique([productId, sku])
+  @@index([sku])
+}
+
+// ============================================================================
+// M02: ESTOQUE MULTI-DEPÓSITO & RESERVAS POR CANAL
+// ============================================================================
+
+model Warehouse {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  name                String    // Ex: "CD Principal São Paulo", "Loja Física / Eventos", "Estoque Troca QA"
+  code                String
+  isPhysicalStore     Boolean   @default(false) // M09: Habilita Ship-from-Store & Click&Collect
+  isQualityQuarantine Boolean   @default(false) // M08: Depósito de triagem de logística reversa
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  stocks              WarehouseStock[]
+}
+
+model WarehouseStock {
+  id                  String           @id @default(uuid())
+  warehouseId         String
+  warehouse           Warehouse        @relation(fields: [warehouseId], references: [id])
+  variationId         String
+  variation           ProductVariation @relation(fields: [variationId], references: [id])
+
+  stockPhysical       Int              @default(0) // Saldo físico na prateleira
+  stockReservedOrder  Int              @default(0) // Reservado por pedidos em aberto
+  stockReservedPromo  Int              @default(0) // M12: Reservado para Flash Sales / Lives
+  safetyStock         Int              @default(5) // Estoque pulmão de segurança p/ evitar oversell
+  minStockAlert       Int              @default(10)
+  maxStockCeiling     Int              @default(200)
+  batchNumber         String?
+  updatedAt           DateTime         @updatedAt
+
+  movements           StockMovement[]
+
+  @@unique([warehouseId, variationId])
+  @@index([variationId, stockPhysical])
+}
+
+model StockMovement {
+  id                  String            @id @default(uuid())
+  warehouseStockId    String
+  warehouseStock      WarehouseStock    @relation(fields: [warehouseStockId], references: [id])
+  type                StockMovementType
+  quantity            Int               // Positivo = entrada, Negativo = saída
+  balanceAfter        Int
+  referenceDocument   String?           // ID do Pedido, Chave NF-e de Entrada ou ID do Inventário
+  notes               String?
+  createdAt           DateTime          @default(now())
+  createdById         String?
+
+  @@index([warehouseStockId, createdAt(sort: Desc)])
+}
+
+// ============================================================================
+// M03 & M04: HUB DE INTEGRAÇÕES (OAUTH2) & PUBLICADOR MULTICANAL (ADAPTERS)
+// ============================================================================
+
+model IntegrationConnection {
+  id                  String              @id @default(uuid())
+  tenantId            String
+  providerKey         String              // SHOPEE | MERCADO_LIVRE | TIKTOK_SHOP | MELHOR_ENVIO | PAGARME | PLUGGY
+  category            IntegrationCategory
+  status              IntegrationStatus   @default(DISCONNECTED)
+  accountIdentifier   String?             // Shop ID / Seller ID / Email
+  // [ENCRYPTED AES-256-GCM] Access Token e Refresh Token nunca ficam em texto plano
+  accessTokenEnc      String?             @db.Text
+  refreshTokenEnc     String?             @db.Text
+  tokenExpiresAt      DateTime?
+  webhookSecretEnc    String?
+  lastSyncAt          DateTime?
+  syncErrorCount      Int                 @default(0)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@unique([tenantId, providerKey])
+}
+
+model ChannelListing {
+  id                  String             @id @default(uuid())
+  productId           String
+  product             Product            @relation(fields: [productId], references: [id])
+  channel             MarketplaceChannel
+  externalListingId   String?            // Ex: "MLB-40192831", "SHP-912831"
+  status              ListingStatus      @default(DRAFT)
+  syncedPrice         Decimal            @db.Decimal(12, 2)
+  syncedStock         Int                @default(0)
+  lastSyncAt          DateTime?
+  lastErrorMessage    String?
+  retryCount          Int                @default(0)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@unique([productId, channel])
+  @@index([channel, status])
+}
+
+// ============================================================================
+// M10: SIMULADOR DE LUCRO POR CANAL (MARGIN-AWARE PRICING)
+// ============================================================================
+
+model ChannelFeeConfig {
+  id                    String             @id @default(uuid())
+  tenantId              String
+  channel               MarketplaceChannel
+  channelLabel          String
+  commissionPct         Decimal            @db.Decimal(5, 2) // Ex: 20.00 (Shopee c/ Frete Grátis)
+  fixedFeePerItem       Decimal            @db.Decimal(8, 2) // Ex: 6.00 (ML abaixo de R$ 79)
+  fixedFeeThreshold     Decimal?           @db.Decimal(8, 2) // Ex: 79.00 (Isenção de taxa fixa >= R$ 79)
+  paymentFeePct         Decimal            @db.Decimal(5, 2) // Ex: 1.99 (Gateway App Próprio)
+  shippingCostEstimate  Decimal            @db.Decimal(8, 2) // Frete médio / co-participação
+  packagingCost         Decimal            @db.Decimal(8, 2) // Embalagem + etiqueta 10x15cm
+  taxPct                Decimal            @db.Decimal(5, 2) // Alíquota Simples Nacional (ex: 5.00%)
+  targetMarginPct       Decimal            @db.Decimal(5, 2) // Meta de margem líquida (ex: 30.00%)
+  minFloorMarginPct     Decimal            @default(15.0) @db.Decimal(5, 2) // P2: Piso de bloqueio
+  isActive              Boolean            @default(true)
+  updatedAt             DateTime           @updatedAt
+  updatedById           String?
+
+  @@unique([tenantId, channel])
+}
+
+model ProductChannelPricing {
+  id                  String             @id @default(uuid())
+  productId           String
+  product             Product            @relation(fields: [productId], references: [id])
+  variationId         String?            // Permite cálculo e override específico por SKU
+  channel             MarketplaceChannel
+  cmvSnapshot         Decimal            @db.Decimal(12, 2)
+  sellingPrice        Decimal            @db.Decimal(12, 2)
+  suggestedPrice      Decimal            @db.Decimal(12, 2)
+  breakEvenPrice      Decimal            @db.Decimal(12, 2)
+  netProfit           Decimal            @db.Decimal(12, 2)
+  marginPct           Decimal            @db.Decimal(5, 2)
+  derivedMarkupPct    Decimal            @db.Decimal(6, 2)
+  semaphore           String             // GREEN | YELLOW | RED
+  isManualOverride    Boolean            @default(false)
+  updatedAt           DateTime           @updatedAt
+  updatedById         String?
+
+  @@unique([productId, channel, variationId])
+  @@index([channel, semaphore])
+}
+
+// ============================================================================
+// M11 & M12: COMBOS DINÂMICOS & OFERTAS RELÂMPAGO (FLASH SALES)
+// ============================================================================
+
+model ComboRule {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  name                String    // Ex: "Combo 3 Peças por R$ 100"
+  tag                 String
+  type                ComboType
+  requiredQuantity    Int
+  paidQuantity        Int?
+  bundlePrice         Decimal   @db.Decimal(12, 2)
+  eligibleCategoryIds String[]
+  fixedVariationIds   String[]
+  estimatedMarginPct  Decimal   @db.Decimal(5, 2) // Validado pelo M10 (P2)
+  isActive            Boolean   @default(true)
+  priority            Int       @default(1)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+}
+
+model FlashSaleCampaign {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  name                String
+  startsAt            DateTime
+  endsAt              DateTime
+  isActive            Boolean   @default(false)
+  itemsJson           Json      // [{ variationId, promoPrice, promoStockLimit, soldCount, marginPct }]
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId, startsAt, endsAt])
+}
+
+// ============================================================================
+// M05, M06, M07, M08, M09: PEDIDOS, CLIENTE 360, EXPEDIÇÃO 10x15, RASTREIO & REVERSA
+// ============================================================================
+
+model Customer {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  tenant              Tenant    @relation(fields: [tenantId], references: [id])
+  fullName            String
+  // [ENCRYPTED AES-256-GCM + Blind Index Hash] CPF, e-mail e telefone p/ unificação 360 e LGPD
+  cpfHash             String    @unique
+  cpfEnc              String
+  email               String
+  phone               String
+  AcquisitionChannel  MarketplaceChannel @default(APP_SAGAS)
+  loyaltyPointsBalance Int      @default(0) // M20: Fidelidade unificada
+  storeCreditBalance  Decimal   @default(0) @db.Decimal(12, 2) // M08: Carteira de Vale-Troca
+  ltvTotal            Decimal   @default(0) @db.Decimal(12, 2) // M16: LTV real
+  ordersCount         Int       @default(0)
+  firstPurchaseAt     DateTime?
+  lastPurchaseAt      DateTime?
+  lgpdMarketingOptIn  Boolean   @default(true)
+  anonymizedAt        DateTime? // M24: Direito ao esquecimento LGPD
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  orders              Order[]
+  tickets             SupportTicket[]
+
+  @@index([tenantId, email])
+  @@index([tenantId, phone])
+}
+
+model Order {
+  id                  String             @id @default(uuid())
+  tenantId            String
+  tenant              Tenant             @relation(fields: [tenantId], references: [id])
+  orderNumber         String             @unique
+  externalOrderId     String?            // ID Shopee / ML / TikTok
+  channel             MarketplaceChannel
+  status              OrderStatus        @default(PENDING_PAYMENT)
+  customerId          String
+  customer            Customer           @relation(fields: [customerId], references: [id])
+
+  grossTotal          Decimal            @db.Decimal(12, 2)
+  discountTotal       Decimal            @default(0) @db.Decimal(12, 2)
+  shippingCharged     Decimal            @default(0) @db.Decimal(12, 2)
+  platformFeeTotal    Decimal            @default(0) @db.Decimal(12, 2)
+  netRevenue          Decimal            @db.Decimal(12, 2)
+
+  // M06: Fiscal NF-e & Etiqueta 10x15cm com DANFE Simplificado
+  nfeKey44            String?            @db.Char(44)
+  nfeNumber           String?
+  nfeSeries           String?
+  nfeProtocol         String?
+  nfeXmlStorageKey    String?
+  label10x15ZplUrl    String?
+  labelPrintedAt      DateTime?
+
+  // M09: Omnichannel Físico
+  isClickAndCollect   Boolean            @default(false)
+  fulfillmentWhId     String?            // Ship-from-store
+
+  // M21: Afiliada / Live Shopping
+  affiliateId         String?
+  couponCode          String?
+
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  items               OrderItem[]
+  packages            ShipmentPackage[]
+  returnRequests      ReturnRequest[]
+  internalComments    OrderInternalComment[]
+
+  @@index([tenantId, channel, status, createdAt(sort: Desc)])
+  @@index([customerId, createdAt(sort: Desc)])
+}
+
+model OrderItem {
+  id                  String           @id @default(uuid())
+  orderId             String
+  order               Order            @relation(fields: [orderId], references: [id])
+  variationId         String
+  variation           ProductVariation @relation(fields: [variationId], references: [id])
+  quantity            Int
+  unitPrice           Decimal          @db.Decimal(12, 2)
+  unitCostCmv         Decimal          @db.Decimal(12, 2)
+  fiscalProportionDiscount Decimal     @default(0) @db.Decimal(12, 2) // M11: Rateio fiscal de Combo
+  scannedAtConference Boolean          @default(false) // M06: Bipagem EAN-13
+}
+
+model ShipmentPackage {
+  id                  String    @id @default(uuid())
+  orderId             String
+  order               Order     @relation(fields: [orderId], references: [id])
+  carrierName         String    // Ex: "Shopee Xpress", "Mercado Envios", "Correios SEDEX", "Jadlog"
+  trackingCode        String
+  packageIndex        Int       @default(1) // M07: Suporte a múltiplos pacotes por pedido
+  currentStatus       String    // POSTED | IN_TRANSIT | OUT_FOR_DELIVERY | DELIVERED | EXCEPTION
+  eventsJson          Json      // [{ timestamp, location, description, notifiedCustomer }]
+  lastPolledAt        DateTime?
+  deliveredAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([trackingCode])
+  @@index([currentStatus, lastPolledAt])
+}
+
+model ReturnRequest {
+  id                  String                @id @default(uuid())
+  orderId             String
+  order               Order                 @relation(fields: [orderId], references: [id])
+  variationId         String
+  reasonCategory      String                // SIZE_TOO_SMALL | SIZE_TOO_LARGE | DEFECT | REGRET
+  customerNotes       String?
+  reversePostageCode  String?               // Código de logística reversa Correios/Melhor Envio
+  inspectionGrade     ReverseInspectionGrade?
+  voucherGeneratedAmt Decimal?              @db.Decimal(12, 2)
+  status              String                @default("AWAITING_POSTAGE")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([variationId, reasonCategory])
+}
+
+// ============================================================================
+// M13 & M14: FINANCEIRO AVANÇADO, DRE, CONCILIAÇÃO & COMPRAS POR VARIAÇÃO
+// ============================================================================
+
+model FinancialEntry {
+  id                  String             @id @default(uuid())
+  tenantId            String
+  companyEntityId     String             // Suporte Multi-CNPJ (MEI + ME)
+  type                FinancialEntryType
+  status              FinancialStatus    @default(PENDING)
+  costCenter          String             // Ex: "CMV_FORNECEDOR", "TAXA_MARKETPLACE", "IMPOSTO_DAS", "MARKETING"
+  description         String
+  amountGross         Decimal            @db.Decimal(12, 2)
+  amountNet           Decimal            @db.Decimal(12, 2)
+  dueDate             DateTime
+  paidAt              DateTime?
+  channelOrigin       MarketplaceChannel?
+  openFinanceTxId     String?            @unique // ID da transação conciliada via Pluggy/Open Finance
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([tenantId, type, status, dueDate])
+}
+
+model Supplier {
+  id                  String          @id @default(uuid())
+  tenantId            String
+  name                String          // Ex: "Confecções Vale do Itajaí Ltda"
+  cnpj                String
+  contactPhone        String
+  avgLeadTimeDays     Int             @default(12)
+  qualityRating       Decimal         @default(5.0) @db.Decimal(3, 2)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  purchaseOrders      PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id                  String              @id @default(uuid())
+  tenantId            String
+  code                String              @unique // Ex: "PC-2026-089"
+  supplierId          String
+  supplier            Supplier            @relation(fields: [supplierId], references: [id])
+  status              PurchaseOrderStatus @default(DRAFT)
+  expectedDeliveryAt  DateTime
+  totalAmount         Decimal             @db.Decimal(12, 2)
+  nfeAccessKey        String?             @db.Char(44)
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  createdById         String?
+
+  items               PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id                  String           @id @default(uuid())
+  purchaseOrderId     String
+  purchaseOrder       PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id])
+  variationId         String
+  variation           ProductVariation @relation(fields: [variationId], references: [id])
+  quantityOrdered     Int
+  quantityReceived    Int              @default(0) // Suporta recebimento parcial
+  unitCost            Decimal          @db.Decimal(12, 2)
+}
+
+// ============================================================================
+// M17 & M18: SMART TABLE (VIEWS/SEGMENTOS) & MOTOR DE AUTOMAÇÕES (WHEN/THEN)
+// ============================================================================
+
+model SmartTableView {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  userId              String
+  user                User      @relation(fields: [userId], references: [id])
+  entityType          String    // PRODUCTS | ORDERS | CUSTOMERS | STOCK_MOVEMENTS | FINANCIAL
+  name                String    // Ex: "Margem Crítica (<15%)", "Giro Parado +60 dias"
+  filterExpressionJson Json     // Condições E/OU e operadores (sku:, canal:, margem:<15)
+  visibleColumns      String[]
+  isDynamicSegment    Boolean   @default(true) // Usado como condição no Motor de Automações (M18) e CRM (M20)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@index([tenantId, entityType])
+}
+
+model AutomationRule {
+  id                  String               @id @default(uuid())
+  tenantId            String
+  name                String
+  trigger             AutomationTrigger
+  segmentConditionId  String?              // Referência a um SmartTableView (segmento dinâmico)
+  conditionCustomJson Json?
+  actionType          AutomationActionType
+  actionPayloadJson   Json
+  isActive            Boolean              @default(true)
+  executionsCount     Int                  @default(0)
+  lastExecutedAt      DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  createdById         String?
+
+  logs                AutomationExecutionLog[]
+}
+
+model AutomationExecutionLog {
+  id                  String         @id @default(uuid())
+  ruleId              String
+  rule                AutomationRule @relation(fields: [ruleId], references: [id])
+  targetEntityId      String
+  status              String         // SUCCESS | FAILED | REPROCESSED
+  resultSummary       String
+  errorDetails        String?
+  executedAt          DateTime       @default(now())
+
+  @@index([ruleId, executedAt(sort: Desc)])
+}
+
+// ============================================================================
+// M20, M21, M22, M23: CRM, AFILIADAS/LIVES, COLEÇÕES & SUPORTE UNIFICADO
+// ============================================================================
+
+model FashionCollection {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  name                String    // Ex: "Coleção Alto Verão Família 2027"
+  season              String
+  year                Int
+  launchDate          DateTime
+  lookbookMediaJson   Json
+  createdAt           DateTime  @default(now())
+
+  products            Product[]
+}
+
+model AffiliatePartner {
+  id                  String    @id @default(uuid())
+  tenantId            String
+  name                String
+  instagramHandle     String
+  couponCode          String    @unique
+  commissionPct       Decimal   @db.Decimal(5, 2)
+  totalSalesGenerated Decimal   @default(0) @db.Decimal(12, 2)
+  isActive            Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+}
+
+model OrderInternalComment {
+  id                  String    @id @default(uuid())
+  orderId             String
+  order               Order     @relation(fields: [orderId], references: [id])
+  authorUserId        String
+  body                String    @db.Text
+  mentionedUserIds    String[]  // Suporte a @menções com criação automática de tarefa
+  isTaskCompleted     Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+}
+
+model SupportTicket {
+  id                  String             @id @default(uuid())
+  tenantId            String
+  channel             MarketplaceChannel // Inclui perguntas/mensagens pós-venda ML, Shopee e WhatsApp
+  externalThreadId    String?
+  customerId          String
+  customer            Customer           @relation(fields: [customerId], references: [id])
+  orderId             String?
+  subject             String
+  status              TicketStatus       @default(OPEN)
+  slaDeadlineAt       DateTime
+  messagesJson        Json               // Histórico de mensagens cliente <-> agente
+  assignedUserId      String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([tenantId, status, slaDeadlineAt])
+}
