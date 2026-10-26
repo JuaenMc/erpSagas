@@ -14,6 +14,8 @@ import {
 import { Product, ProductVariation, FiscalData } from '../types';
 import { GradeEditor } from './GradeEditor';
 import { ChannelProfitTable } from './ChannelProfitTable';
+import apiClient from '../services/apiClient';
+import { mapDtoToAdminProduct } from '../hooks/useProducts';
 
 interface ProductFormModalProps {
   isOpen: boolean;
@@ -105,42 +107,51 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
     setSecondaryImages(prev => prev.filter((_, i) => i !== idx));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !masterSku.trim() || variations.length === 0) {
       alert('Por favor, preencha o Nome, SKU Mestre e ao menos uma variação de grade.');
       return;
     }
 
-    const newProduct: Product = {
-      id: `prod-${Date.now()}`,
-      title: title.trim(),
-      masterSku: masterSku.trim().toUpperCase(),
-      description: description.trim() || `${title} da coleção oficial sagas.moda.`,
-      brand: brand || 'sagas.moda',
-      basePrice,
-      costPrice,
-      categoryId,
-      categoryLabel: categoryId === 'infantil' ? 'Infantil' : categoryId === 'feminino' ? 'Feminino' : 'Masculino',
-      imageUrl: coverImageUrl,
-      secondaryImages,
-      weightGrams,
-      dimensionsCm: dimensions,
-      fiscal,
-      tags: ['NOVO', 'COMBO_3_POR_100', 'VERAO_2025'],
-      collectionId: 'col-verao-2025',
-      variations,
-      channelListings: {
-        APP_SAGAS: { id: `cl-app-${Date.now()}`, channel: 'APP_SAGAS', markupPercent: 0, channelPrice: basePrice, status: 'PUBLISHED', lastSync: 'Agora' },
-        SHOPEE: { id: `cl-shp-${Date.now()}`, channel: 'SHOPEE', markupPercent: 10, channelPrice: Math.round(basePrice * 1.1 * 100) / 100, status: 'PENDING' },
-        MERCADO_LIVRE: { id: `cl-ml-${Date.now()}`, channel: 'MERCADO_LIVRE', markupPercent: 12, channelPrice: Math.round(basePrice * 1.12 * 100) / 100, status: 'PENDING' },
-        TIKTOK_SHOP: { id: `cl-tts-${Date.now()}`, channel: 'TIKTOK_SHOP', markupPercent: 8, channelPrice: Math.round(basePrice * 1.08 * 100) / 100, status: 'PENDING' },
-      },
-      createdAt: new Date().toISOString(),
-    };
+    setIsSubmitting(true);
+    setErrorMessage(null);
 
-    onSaveProduct(newProduct);
-    onClose();
+    try {
+      const payload = {
+        title: title.trim(),
+        masterSku: masterSku.trim().toUpperCase(),
+        description: description.trim() || `${title} da coleção oficial sagas.moda.`,
+        categoryId: categoryId === 'infantil' ? 'cat-infantil' : categoryId === 'masculino' ? 'cat-masculino' : 'cat-feminino',
+        basePrice,
+        costPrice,
+        coverImageUrl,
+        mediaGallery: secondaryImages,
+        weightGrams,
+        variations: variations.map(v => ({
+          size: v.size,
+          color: v.color,
+          sku: v.sku,
+          barcodeEan13: v.barcodeEan13,
+          stock: v.stockReal,
+          price: v.price,
+          costPrice: v.costPrice,
+        })),
+      };
+
+      const res = await apiClient.post<any>('/api/products', payload);
+      const savedProd = mapDtoToAdminProduct(res.data);
+      onSaveProduct(savedProd);
+      onClose();
+    } catch (err: any) {
+      console.error('Erro ao salvar produto no ERP:', err);
+      setErrorMessage(err.message || 'Erro ao comunicar com a API do ERP.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -482,6 +493,13 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
             />
           )}
 
+          {errorMessage && (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
           {/* Footer Form Controls */}
           <div className="flex items-center justify-between pt-4 border-t border-stone-200">
             <div className="flex items-center gap-1.5 text-emerald-700 text-xs font-semibold">
@@ -493,16 +511,18 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 rounded-lg text-stone-600 font-semibold hover:bg-stone-100"
+                disabled={isSubmitting}
+                className="px-4 py-2 rounded-lg text-stone-600 font-semibold hover:bg-stone-100 disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
+                disabled={isSubmitting}
+                className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:bg-rose-400 text-white font-bold shadow-md transition-colors flex items-center gap-2 cursor-pointer"
               >
                 <Package className="w-4 h-4" />
-                <span>Salvar Produto no ERP</span>
+                <span>{isSubmitting ? 'Salvando no Neon DB...' : 'Salvar Produto no ERP'}</span>
               </button>
             </div>
           </div>

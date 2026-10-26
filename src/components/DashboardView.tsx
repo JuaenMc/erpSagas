@@ -259,40 +259,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="space-y-3">
-            {products.slice(0, 3).map((prod, idx) => (
-              <div
-                key={prod.id}
-                className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-rose-100 text-rose-800 font-black text-xs flex items-center justify-center shrink-0">
-                    {idx + 1}
-                  </span>
-                  <img
-                    src={prod.imageUrl}
-                    alt={prod.title}
-                    className="w-12 h-12 rounded-lg object-cover border border-stone-200 shrink-0"
-                  />
-                  <div>
-                    <h4 className="font-bold text-stone-900 truncate max-w-[200px]">
-                      {prod.title}
-                    </h4>
-                    <p className="text-[11px] text-stone-500 font-mono">
-                      {prod.masterSku || 'SKU-MASTER'} • {prod.categoryLabel}
-                    </p>
+            {products.length === 0 ? (
+              <div className="p-6 text-center text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200">
+                <p className="font-semibold text-xs">Nenhum produto cadastrado no banco do ERP.</p>
+                <button
+                  onClick={() => setActiveTab('publisher')}
+                  className="mt-2 text-xs font-bold text-rose-600 hover:text-rose-800 cursor-pointer"
+                >
+                  + Cadastrar Primeiro Produto
+                </button>
+              </div>
+            ) : (
+              products.slice(0, 3).map((prod, idx) => (
+                <div
+                  key={prod.id}
+                  className="flex items-center justify-between p-3 rounded-xl bg-stone-50 border border-stone-200 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="w-6 h-6 rounded-full bg-rose-100 text-rose-800 font-black text-xs flex items-center justify-center shrink-0">
+                      {idx + 1}
+                    </span>
+                    <img
+                      src={prod.imageUrl}
+                      alt={prod.title}
+                      className="w-12 h-12 rounded-lg object-cover border border-stone-200 shrink-0"
+                    />
+                    <div>
+                      <h4 className="font-bold text-stone-900 truncate max-w-[200px]">
+                        {prod.title}
+                      </h4>
+                      <p className="text-[11px] text-stone-500 font-mono">
+                        {prod.masterSku || 'SKU-MASTER'} • {prod.categoryLabel}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="font-extrabold text-stone-900 text-sm block">
+                      R$ {prod.basePrice.toFixed(2)}
+                    </span>
+                    <span className="text-[10px] font-bold text-rose-600">
+                      Selo Combo 3 por 100
+                    </span>
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <span className="font-extrabold text-stone-900 text-sm block">
-                    R$ {prod.basePrice.toFixed(2)}
-                  </span>
-                  <span className="text-[10px] font-bold text-rose-600">
-                    Selo Combo 3 por 100
-                  </span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
@@ -309,35 +321,43 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="space-y-3">
-            {lowStockVariations.map(item => (
-              <div
-                key={item.sku}
-                className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 border border-amber-200 text-xs"
-              >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={item.imageUrl}
-                    alt={item.productTitle}
-                    className="w-10 h-10 rounded-lg object-cover border border-stone-200 shrink-0"
-                  />
-                  <div>
-                    <p className="font-bold text-stone-900 truncate max-w-[180px]">
-                      {item.productTitle}
-                    </p>
-                    <p className="text-[11px] text-stone-600 font-mono">
-                      SKU: {item.sku} (Tam {item.size} - {item.color})
-                    </p>
+            {lowStockVariations.length === 0 ? (
+              <div className="p-6 text-center text-stone-500 bg-stone-50 rounded-xl border border-dashed border-stone-200">
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                <p className="font-semibold text-xs text-stone-700">Estoque equilibrado em todos os canais.</p>
+                <p className="text-[11px] text-stone-400 mt-0.5">Nenhum SKU abaixo da margem de reposição urgente.</p>
+              </div>
+            ) : (
+              lowStockVariations.map(item => (
+                <div
+                  key={item.sku}
+                  className="flex items-center justify-between p-3 rounded-xl bg-amber-50/50 border border-amber-200 text-xs"
+                >
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.productTitle}
+                      className="w-10 h-10 rounded-lg object-cover border border-stone-200 shrink-0"
+                    />
+                    <div>
+                      <p className="font-bold text-stone-900 truncate max-w-[180px]">
+                        {item.productTitle}
+                      </p>
+                      <p className="text-[11px] text-stone-600 font-mono">
+                        SKU: {item.sku} (Tam {item.size} - {item.color})
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <span className="font-black text-rose-600 text-sm block">
+                      {item.stockReal} unids
+                    </span>
+                    <span className="text-[10px] text-stone-500">Reposição Urgente</span>
                   </div>
                 </div>
-
-                <div className="text-right">
-                  <span className="font-black text-rose-600 text-sm block">
-                    {item.stockReal} unids
-                  </span>
-                  <span className="text-[10px] text-stone-500">Reposição Urgente</span>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

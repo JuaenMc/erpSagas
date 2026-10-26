@@ -229,8 +229,22 @@ export const ProductPublisher: React.FC<ProductPublisherProps> = ({
             </button>
           </div>
 
-          <div className="space-y-3">
-            {products.map(prod => {
+          {products.length === 0 ? (
+            <div className="p-8 text-center bg-stone-50 rounded-xl border border-dashed border-stone-300">
+              <Layers className="w-8 h-8 text-stone-400 mx-auto mb-2" />
+              <p className="text-stone-700 font-bold text-sm">Nenhum produto cadastrado no banco do ERP</p>
+              <p className="text-stone-500 text-xs mt-1">Cadastre o primeiro produto com grade e estoque no Neon DB.</p>
+              <button
+                onClick={() => setIsProductFormOpen(true)}
+                className="mt-4 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-sm inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Cadastrar Primeiro Produto</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {products.map(prod => {
               const isSelectedForPublish = selectedProductIdsForPublish.includes(prod.id);
               const isCurrentDetails = selectedProduct?.id === prod.id;
               const totalStock = prod.variations.reduce((acc, v) => acc + v.stockReal, 0);
@@ -311,6 +325,7 @@ export const ProductPublisher: React.FC<ProductPublisherProps> = ({
               );
             })}
           </div>
+          )}
         </div>
 
         {/* Adaptador de Canais & Detalhes Fiscais (5 cols) */}

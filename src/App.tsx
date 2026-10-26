@@ -16,17 +16,17 @@ import { AutomationEngineView } from './components/AutomationEngineView';
 import { PurchasesAndFashionView } from './components/PurchasesAndFashionView';
 import { Search, ArrowRight } from 'lucide-react';
 import {
-  INITIAL_PRODUCTS,
   INITIAL_COMBOS,
   INITIAL_FLASH_SALES,
   INITIAL_ORDERS,
   INITIAL_LOGS,
 } from './data/mockData';
-import { Product, ComboRuleModel, FlashSaleModel, Order, IntegrationLog } from './types';
+import { ComboRuleModel, FlashSaleModel, Order, IntegrationLog } from './types';
+import { useProducts } from './hooks/useProducts';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const { products, setProducts, loading: loadingProducts, refetch: refetchProducts, createProduct } = useProducts();
   const [combos, setCombos] = useState<ComboRuleModel[]>(INITIAL_COMBOS);
   const [flashSales, setFlashSales] = useState<FlashSaleModel[]>(INITIAL_FLASH_SALES);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
