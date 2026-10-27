@@ -126,112 +126,170 @@ export default function App() {
     cmd.section.toLowerCase().includes(commandSearch.toLowerCase())
   );
 
+  const tabMeta: Record<ActiveTab, { group: string; title: string }> = {
+    dashboard: { group: 'Visão Geral & Finanças', title: 'Painel Geral' },
+    bi_analytics: { group: 'Visão Geral & Finanças', title: 'Indicadores & DRE' },
+    smart_data: { group: 'Visão Geral & Finanças', title: 'Central de Dados Universal' },
+    publisher: { group: 'Catálogo, Estoque & Margem', title: 'Catálogo & Simulador de Lucro' },
+    stock_sync: { group: 'Catálogo, Estoque & Margem', title: 'Estoque Multi-Depósito & Reserva' },
+    purchases_fashion: { group: 'Catálogo, Estoque & Margem', title: 'Compras, Fornecedores & Moda BI' },
+    combos: { group: 'Comercial & Promoções', title: 'Combos Dinâmicos' },
+    flash_sales: { group: 'Comercial & Promoções', title: 'Ofertas Relâmpago' },
+    logistics: { group: 'Expedição & Pós-Venda', title: 'Etiquetas 10x15cm & DANFE Simplificado' },
+    tracking: { group: 'Expedição & Pós-Venda', title: 'Rastreamento Unificado' },
+    automations: { group: 'Automações & Canais', title: 'Motor de Automações (Quando → Então)' },
+    integrations: { group: 'Automações & Canais', title: 'Canais Conectados' },
+    mobile_app: { group: 'Automações & Canais', title: 'App sagas.moda (Preview Mobile)' },
+    architecture: { group: 'Automações & Canais', title: 'Arquitetura & Documentação' },
+  };
+
   return (
-    <div className="min-h-screen bg-stone-100/70 text-stone-900 font-sans antialiased flex flex-col selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen bg-stone-100/70 text-stone-900 font-sans antialiased flex flex-col lg:flex-row selection:bg-rose-500 selection:text-white">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         pendingLabelsCount={pendingLabelsCount}
         activeCombosCount={activeCombosCount}
+        onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            products={products}
-            combos={combos}
-            flashSales={flashSales}
-            orders={orders}
-            logs={logs}
-            setActiveTab={setActiveTab}
-          />
-        )}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Barra contextual limpa no topo da área de trabalho */}
+        <header className="hidden lg:flex h-14 bg-white border-b border-stone-200 px-6 items-center justify-between sticky top-0 z-20">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-stone-400 font-medium">
+              {tabMeta[activeTab]?.group}
+            </span>
+            <span className="text-stone-300">/</span>
+            <span className="font-bold text-stone-900 text-sm">
+              {tabMeta[activeTab]?.title}
+            </span>
+          </div>
 
-        {activeTab === 'bi_analytics' && <BiAnalyticsDashboard />}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsCommandPaletteOpen(true)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200/70 text-stone-600 text-xs font-medium border border-stone-200 transition-colors cursor-pointer"
+            >
+              <Search className="w-3.5 h-3.5 text-stone-400" />
+              <span>Ir para tela ou buscar...</span>
+              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white text-stone-500 rounded border border-stone-200">
+                Ctrl+K
+              </kbd>
+            </button>
+          </div>
+        </header>
 
-        {activeTab === 'smart_data' && (
-          <SmartDataHub
-            products={products}
-            setProducts={setProducts}
-            orders={orders}
-            savedSegments={savedSegments}
-            setSavedSegments={setSavedSegments}
-            onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
-          />
-        )}
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              products={products}
+              combos={combos}
+              flashSales={flashSales}
+              orders={orders}
+              logs={logs}
+              setActiveTab={setActiveTab}
+            />
+          )}
 
-        {activeTab === 'automations' && (
-          <AutomationEngineView savedSegments={savedSegments} />
-        )}
+          {activeTab === 'bi_analytics' && <BiAnalyticsDashboard />}
 
-        {activeTab === 'purchases_fashion' && (
-          <PurchasesAndFashionView
-            products={products}
-            setProducts={setProducts}
-          />
-        )}
+          {activeTab === 'smart_data' && (
+            <SmartDataHub
+              products={products}
+              setProducts={setProducts}
+              orders={orders}
+              savedSegments={savedSegments}
+              setSavedSegments={setSavedSegments}
+              onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
+            />
+          )}
 
-        {activeTab === 'integrations' && <IntegrationsHub />}
+          {activeTab === 'automations' && (
+            <AutomationEngineView savedSegments={savedSegments} />
+          )}
 
-        {activeTab === 'tracking' && (
-          <TrackingHub
-            orders={orders}
-            setOrders={setOrders}
-          />
-        )}
+          {activeTab === 'purchases_fashion' && (
+            <PurchasesAndFashionView
+              products={products}
+              setProducts={setProducts}
+            />
+          )}
 
-        {activeTab === 'combos' && (
-          <CombosManager
-            combos={combos}
-            setCombos={setCombos}
-            products={products}
-          />
-        )}
+          {activeTab === 'integrations' && <IntegrationsHub />}
 
-        {activeTab === 'flash_sales' && (
-          <FlashSalesManager
-            flashSales={flashSales}
-            setFlashSales={setFlashSales}
-            products={products}
-          />
-        )}
+          {activeTab === 'tracking' && (
+            <TrackingHub
+              orders={orders}
+              setOrders={setOrders}
+            />
+          )}
 
-        {activeTab === 'publisher' && (
-          <ProductPublisher
-            products={products}
-            setProducts={setProducts}
-            logs={logs}
-            setLogs={setLogs}
-          />
-        )}
+          {activeTab === 'combos' && (
+            <CombosManager
+              combos={combos}
+              setCombos={setCombos}
+              products={products}
+            />
+          )}
 
-        {activeTab === 'logistics' && (
-          <LogisticsHub
-            orders={orders}
-            setOrders={setOrders}
-          />
-        )}
+          {activeTab === 'flash_sales' && (
+            <FlashSalesManager
+              flashSales={flashSales}
+              setFlashSales={setFlashSales}
+              products={products}
+            />
+          )}
 
-        {activeTab === 'stock_sync' && (
-          <StockSyncSimulator
-            products={products}
-            setProducts={setProducts}
-            logs={logs}
-            setLogs={setLogs}
-          />
-        )}
+          {activeTab === 'publisher' && (
+            <ProductPublisher
+              products={products}
+              setProducts={setProducts}
+              logs={logs}
+              setLogs={setLogs}
+            />
+          )}
 
-        {activeTab === 'mobile_app' && (
-          <MobileAppPreview
-            products={products}
-            combos={combos}
-            flashSales={flashSales}
-            onPlaceAppOrder={handlePlaceAppOrder}
-          />
-        )}
+          {activeTab === 'logistics' && (
+            <LogisticsHub
+              orders={orders}
+              setOrders={setOrders}
+            />
+          )}
 
-        {activeTab === 'architecture' && <ArchitectureDocs />}
-      </main>
+          {activeTab === 'stock_sync' && (
+            <StockSyncSimulator
+              products={products}
+              setProducts={setProducts}
+              logs={logs}
+              setLogs={setLogs}
+            />
+          )}
+
+          {activeTab === 'mobile_app' && (
+            <MobileAppPreview
+              products={products}
+              combos={combos}
+              flashSales={flashSales}
+              onPlaceAppOrder={handlePlaceAppOrder}
+            />
+          )}
+
+          {activeTab === 'architecture' && <ArchitectureDocs />}
+        </main>
+
+        <footer className="bg-white border-t border-stone-200 py-3.5 px-6 text-xs text-stone-500">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>
+              <strong>sagas.moda ERP Omnichannel</strong> — Gestão Integrada para Loja Própria, Shopee, Mercado Livre e TikTok Shop.
+            </p>
+            <p className="text-[11px] text-stone-400">
+              Atalho Rápido: Pressione <kbd className="px-1.5 py-0.5 bg-stone-100 rounded border border-stone-200 font-mono">Ctrl+K</kbd> para navegar entre qualquer tela
+            </p>
+          </div>
+        </footer>
+      </div>
 
       {/* Command Palette Global (Ctrl+K) */}
       {isCommandPaletteOpen && (
@@ -280,17 +338,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      <footer className="bg-white border-t border-stone-200 py-4 px-6 text-xs text-stone-500 text-center">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p>
-            <strong>sagas.moda ERP Omnichannel</strong> — Gestão Integrada para Loja Própria, Shopee, Mercado Livre e TikTok Shop.
-          </p>
-          <p className="text-[11px] text-stone-400">
-            Atalho Rápido: Pressione <kbd className="px-1.5 py-0.5 bg-stone-100 rounded border border-stone-200 font-mono">Ctrl+K</kbd> para navegar entre qualquer tela
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }
