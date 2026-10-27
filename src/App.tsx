@@ -144,7 +144,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-100/70 text-stone-900 font-sans antialiased flex flex-col lg:flex-row selection:bg-rose-500 selection:text-white">
+    <div className="min-h-screen bg-stone-100/70 text-stone-900 font-sans antialiased text-base flex flex-col lg:flex-row selection:bg-rose-500 selection:text-white">
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -155,13 +155,13 @@ export default function App() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Barra contextual limpa no topo da área de trabalho */}
-        <header className="hidden lg:flex h-14 bg-white border-b border-stone-200 px-4 sm:px-8 lg:px-12 items-center justify-between sticky top-0 z-20 w-full">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-stone-400 font-medium">
+        <header className="hidden lg:flex h-16 bg-white border-b border-stone-200 px-4 sm:px-8 lg:px-12 items-center justify-between sticky top-0 z-20 w-full">
+          <div className="flex items-center gap-2.5">
+            <span className="text-stone-400 font-medium text-sm">
               {tabMeta[activeTab]?.group}
             </span>
             <span className="text-stone-300">/</span>
-            <span className="font-bold text-stone-900 text-sm">
+            <span className="font-extrabold text-stone-900 text-base">
               {tabMeta[activeTab]?.title}
             </span>
           </div>
@@ -170,11 +170,11 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200/70 text-stone-600 text-xs font-medium border border-stone-200 transition-colors cursor-pointer"
+              className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold border border-stone-200 transition-colors cursor-pointer"
             >
-              <Search className="w-3.5 h-3.5 text-stone-400" />
+              <Search className="w-4 h-4 text-stone-400" />
               <span>Ir para tela ou buscar...</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white text-stone-500 rounded border border-stone-200">
+              <kbd className="px-2 py-0.5 text-xs font-mono bg-white text-stone-600 rounded border border-stone-200 shadow-2xs">
                 Ctrl+K
               </kbd>
             </button>

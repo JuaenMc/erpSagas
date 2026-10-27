@@ -223,14 +223,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             {!isSlim && (
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-tight text-white">
+                  <span className="font-extrabold text-lg tracking-tight text-white">
                     SAGAS<span className="text-rose-500">.MODA</span>
                   </span>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                     ERP
                   </span>
                 </div>
-                <p className="text-[11px] text-stone-400 truncate">
+                <p className="text-xs text-stone-400 truncate">
                   Omnichannel Moda Família
                 </p>
               </div>
@@ -271,16 +271,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenCommandPalette();
               }}
               className={`w-full flex items-center ${
-                isSlim ? 'justify-center p-2' : 'justify-between px-3 py-2'
-              } rounded-xl bg-stone-800/90 hover:bg-stone-800 text-stone-300 border border-stone-700/70 text-xs transition-colors cursor-pointer`}
+                isSlim ? 'justify-center p-2.5' : 'justify-between px-3.5 py-2.5'
+              } rounded-xl bg-stone-800/90 hover:bg-stone-800 text-stone-200 border border-stone-700/70 text-sm font-medium transition-colors cursor-pointer`}
               title="Busca Rápida (Ctrl+K)"
             >
               <span className="flex items-center gap-2 truncate">
-                <Search className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <Search className="w-4 h-4 text-rose-400 shrink-0" />
                 {!isSlim && <span>Buscar tela ou SKU...</span>}
               </span>
               {!isSlim && (
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-stone-900 text-stone-400 rounded border border-stone-700">
+                <kbd className="px-2 py-0.5 text-xs font-mono bg-stone-900 text-stone-300 rounded border border-stone-700">
                   Ctrl+K
                 </kbd>
               )}
@@ -301,7 +301,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.id)}
-                    className={`w-full flex items-center justify-between px-2.5 py-1.5 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer ${
+                    className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg transition-colors cursor-pointer ${
                       hasActiveChild
                         ? 'text-rose-400'
                         : 'text-stone-400 hover:text-stone-200'
@@ -309,9 +309,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     <span className="truncate">{group.title}</span>
                     {isGroupOpen ? (
-                      <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                      <ChevronDown className="w-4 h-4 shrink-0 opacity-75" />
                     ) : (
-                      <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-75" />
+                      <ChevronRight className="w-4 h-4 shrink-0 opacity-75" />
                     )}
                   </button>
                 ) : (
@@ -353,12 +353,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                             />
                             {!isSlim && (
                               <div className="truncate">
-                                <div className="text-xs font-semibold leading-tight truncate">
+                                <div className="text-sm font-semibold leading-tight truncate">
                                   {item.label}
                                 </div>
                                 {item.subtitle && (
                                   <div
-                                    className={`text-[10px] truncate mt-0.5 ${
+                                    className={`text-xs truncate mt-0.5 ${
                                       isActive ? 'text-rose-100' : 'text-stone-400'
                                     }`}
                                   >
@@ -371,7 +371,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
                           {!isSlim && item.badge !== undefined && (
                             <span
-                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
+                              className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${
                                 isActive
                                   ? 'bg-white text-rose-700'
                                   : item.badgeColor || 'bg-stone-800 text-stone-200'

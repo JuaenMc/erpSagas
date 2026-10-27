@@ -450,35 +450,35 @@ export const BiAnalyticsDashboard: React.FC = () => {
 
       {/* 4 KPI Cards Executivos Sempre Visíveis */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-stone-500">
-            <span className="font-semibold">Receita Bruta ({period})</span>
-            <DollarSign className="w-4 h-4 text-stone-700" />
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-sm text-stone-600">
+            <span className="font-bold">Receita Bruta ({period})</span>
+            <DollarSign className="w-5 h-5 text-stone-700" />
           </div>
-          <p className="text-2xl font-black text-stone-900 mt-1.5">
+          <p className="text-3xl font-black text-stone-900 mt-2">
             R$ {totals.gross.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </p>
-          <div className="flex items-center justify-between mt-2 text-[11px]">
+          <div className="flex items-center justify-between mt-3 text-xs">
             <span className="text-emerald-600 font-bold flex items-center gap-0.5">
-              <ArrowUpRight className="w-3.5 h-3.5" />
+              <ArrowUpRight className="w-4 h-4" />
               +24,8% no período
             </span>
-            <span className="text-stone-400 font-mono">{totals.orders} pedidos</span>
+            <span className="text-stone-500 font-mono font-semibold">{totals.orders} pedidos</span>
           </div>
         </div>
 
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-stone-500">
-            <span className="font-semibold">Repasse Líquido Canais</span>
-            <TrendingUp className="w-4 h-4 text-rose-600" />
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-sm text-stone-600">
+            <span className="font-bold">Repasse Líquido Canais</span>
+            <TrendingUp className="w-5 h-5 text-rose-600" />
           </div>
-          <p className="text-2xl font-black text-stone-900 mt-1.5">
+          <p className="text-3xl font-black text-stone-900 mt-2">
             R${' '}
             {totals.netAfterCommissions.toLocaleString('pt-BR', {
               minimumFractionDigits: 2,
             })}
           </p>
-          <div className="mt-2 text-[11px] text-stone-600">
+          <div className="mt-3 text-xs text-stone-600">
             Comissões retidas:{' '}
             <strong className="text-rose-600">
               −R$ {totals.fees.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -486,27 +486,27 @@ export const BiAnalyticsDashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-stone-500">
-            <span className="font-semibold">Margem de Contribuição</span>
-            <Percent className="w-4 h-4 text-indigo-600" />
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between text-sm text-stone-600">
+            <span className="font-bold">Margem de Contribuição</span>
+            <Percent className="w-5 h-5 text-indigo-600" />
           </div>
-          <p className="text-2xl font-black text-stone-900 mt-1.5">
+          <p className="text-3xl font-black text-stone-900 mt-2">
             R${' '}
             {totals.contributionMargin.toLocaleString('pt-BR', {
               minimumFractionDigits: 2,
             })}
           </p>
-          <div className="mt-2 text-[11px] text-indigo-700 font-semibold">
+          <div className="mt-3 text-xs text-indigo-700 font-semibold">
             {totals.contributionMarginPct.toFixed(1)}% após CMV, taxas e impostos
           </div>
         </div>
 
-        <div className="bg-white border border-emerald-200 rounded-2xl p-4 shadow-xs bg-gradient-to-br from-white to-emerald-50/40">
-          <div className="flex items-center justify-between text-xs text-stone-600">
+        <div className="bg-white border border-emerald-200 rounded-2xl p-5 shadow-xs bg-gradient-to-br from-white to-emerald-50/40">
+          <div className="flex items-center justify-between text-sm text-stone-600">
             <span className="font-bold">Lucro Líquido Real (DRE)</span>
             <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
                 totals.ebitdaMarginPct >= 20
                   ? 'bg-emerald-100 text-emerald-800'
                   : totals.ebitdaMarginPct >= 12
@@ -521,13 +521,13 @@ export const BiAnalyticsDashboard: React.FC = () => {
                 : '🔴 Crítico'}
             </span>
           </div>
-          <p className="text-2xl font-black text-emerald-800 mt-1.5">
+          <p className="text-3xl font-black text-emerald-800 mt-2">
             R${' '}
             {totals.ebitdaNetProfit.toLocaleString('pt-BR', {
               minimumFractionDigits: 2,
             })}
           </p>
-          <div className="mt-2 text-[11px] text-emerald-900 font-semibold">
+          <div className="mt-3 text-xs text-emerald-900 font-semibold">
             Margem líquida final: <strong>{totals.ebitdaMarginPct.toFixed(1)}%</strong>
           </div>
         </div>

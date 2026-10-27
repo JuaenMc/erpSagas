@@ -161,19 +161,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-bold text-rose-400 uppercase tracking-wider">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">
                 Visão Geral & Controle Financeiro Diário
               </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
               Resumo Operacional & Margem em Tempo Real
             </h2>
           </div>
 
           {/* Filtros de Período e Canal */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center bg-stone-950 p-1 rounded-xl border border-stone-800">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <div className="flex items-center bg-stone-950 p-1.5 rounded-xl border border-stone-800">
               {(
                 [
                   { id: 'hoje', label: 'Hoje' },
@@ -185,7 +185,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   key={p.id}
                   type="button"
                   onClick={() => setPeriod(p.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition-colors cursor-pointer ${
                     period === p.id
                       ? 'bg-rose-600 text-white'
                       : 'text-stone-400 hover:text-white'
@@ -199,7 +199,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <select
               value={channelFilter}
               onChange={(e) => setChannelFilter(e.target.value as ChannelFilter)}
-              className="bg-stone-950 text-stone-200 text-xs font-bold px-3 py-2 rounded-xl border border-stone-800 focus:outline-none focus:border-rose-500 cursor-pointer"
+              className="bg-stone-950 text-stone-200 text-sm font-bold px-3.5 py-2.5 rounded-xl border border-stone-800 focus:outline-none focus:border-rose-500 cursor-pointer"
             >
               <option value="ALL">Todos os Canais (Omnichannel)</option>
               <option value="APP_SAGAS">App Próprio sagas.moda</option>
@@ -211,9 +211,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Barra de Meta Diária de Faturamento */}
-        <div className="bg-stone-950/80 border border-stone-800 rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1 flex-1">
-            <div className="flex items-center justify-between text-xs">
+        <div className="bg-stone-950/80 border border-stone-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="space-y-1.5 flex-1">
+            <div className="flex items-center justify-between text-sm">
               <span className="text-stone-300 font-semibold">
                 Meta de Faturamento Hoje:{' '}
                 <strong className="text-white">
@@ -221,11 +221,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </strong>{' '}
                 de R$ {dailyGoal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
-              <span className="font-mono font-bold text-emerald-400">
+              <span className="font-mono font-bold text-emerald-400 text-sm">
                 {goalProgressPct}% atingido
               </span>
             </div>
-            <div className="w-full h-2 bg-stone-800 rounded-full overflow-hidden">
+            <div className="w-full h-2.5 bg-stone-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-rose-500 to-emerald-400 rounded-full transition-all duration-500"
                 style={{ width: `${goalProgressPct}%` }}
@@ -237,9 +237,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={() => setActiveTab('bi_analytics')}
-              className="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold border border-stone-700 transition-colors cursor-pointer flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-100 text-sm font-bold border border-stone-700 transition-colors cursor-pointer flex items-center gap-2"
             >
-              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              <DollarSign className="w-4 h-4 text-emerald-400" />
               <span>Abrir DRE Completa</span>
             </button>
           </div>
@@ -249,23 +249,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* 4 KPI Cards Principais com Sparklines e Ações Condicionais (P1) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
         {/* Card 1: Faturamento Bruto */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-stone-500 text-xs">
-              <span className="font-semibold">Faturamento Bruto ({period.toUpperCase()})</span>
+            <div className="flex items-center justify-between text-stone-600 text-sm">
+              <span className="font-bold">Faturamento Bruto ({period.toUpperCase()})</span>
               <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
-            <p className="text-2xl font-black text-stone-900 mt-1.5">
+            <p className="text-3xl font-black text-stone-900 mt-2">
               R$ {totalRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
           </div>
           {/* Mini Sparkline Visual */}
-          <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between">
-            <span className="text-[11px] text-emerald-600 font-bold flex items-center gap-0.5">
-              <ArrowUpRight className="w-3.5 h-3.5" />
+          <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between">
+            <span className="text-xs text-emerald-600 font-bold flex items-center gap-0.5">
+              <ArrowUpRight className="w-4 h-4" />
               +28,4% vs. anterior
             </span>
-            <div className="flex items-end gap-0.5 h-5">
+            <div className="flex items-end gap-1 h-6">
               {[35, 50, 45, 65, 80, 75, 95].map((h, i) => (
                 <span
                   key={i}
@@ -278,26 +278,26 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Card 2: Lucro Líquido & Semáforo de Margem (P1 & P2) */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-stone-500 text-xs">
-              <span className="font-semibold">Lucro Líquido Real</span>
+            <div className="flex items-center justify-between text-stone-600 text-sm">
+              <span className="font-bold">Lucro Líquido Real</span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${marginSemaphore.classes}`}
+                className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${marginSemaphore.classes}`}
               >
                 {marginSemaphore.label}
               </span>
             </div>
-            <p className="text-2xl font-black text-stone-900 mt-1.5">
+            <p className="text-3xl font-black text-stone-900 mt-2">
               R${' '}
               {catalogMarginSummary.estimatedNetProfit.toLocaleString('pt-BR', {
                 minimumFractionDigits: 2,
               })}
             </p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-[11px]">
-            <span className="text-stone-600">
-              Margem líquida média: <strong>{catalogMarginSummary.avgMarginPct}%</strong>
+          <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+            <span className="text-stone-600 font-medium">
+              Margem média: <strong className="text-stone-900">{catalogMarginSummary.avgMarginPct}%</strong>
             </span>
             {catalogMarginSummary.warningListingsCount +
               catalogMarginSummary.criticalListingsCount >
@@ -314,31 +314,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Card 3: Expedição 10x15 + Ação Condicional */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-stone-500 text-xs">
-              <span className="font-semibold">Fila de Expedição 10x15</span>
+            <div className="flex items-center justify-between text-stone-600 text-sm">
+              <span className="font-bold">Fila de Expedição 10x15</span>
               <Printer className="w-4 h-4 text-indigo-500" />
             </div>
-            <p className="text-2xl font-black text-stone-900 mt-1.5">
+            <p className="text-3xl font-black text-stone-900 mt-2">
               {pendingLabels} {pendingLabels === 1 ? 'pedido' : 'pedidos'}
             </p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-[11px]">
+          <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
             {pendingLabels > 0 ? (
               <>
                 <span className="text-amber-700 font-semibold">Aguardando impressão</span>
                 <button
                   type="button"
                   onClick={() => setActiveTab('logistics')}
-                  className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold cursor-pointer"
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold cursor-pointer"
                 >
                   Imprimir ({pendingLabels})
                 </button>
               </>
             ) : (
               <span className="text-emerald-600 font-semibold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
+                <CheckCircle2 className="w-4 h-4" />
                 100% dos pedidos expedidos
               </span>
             )}
@@ -346,19 +346,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         {/* Card 4: Estoque & Campanhas Ativas */}
-        <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between text-stone-500 text-xs">
-              <span className="font-semibold">Estoque & Campanhas</span>
+            <div className="flex items-center justify-between text-stone-600 text-sm">
+              <span className="font-bold">Estoque & Campanhas</span>
               <Package className="w-4 h-4 text-amber-500" />
             </div>
-            <p className="text-2xl font-black text-stone-900 mt-1.5">
-              {totalStock} <span className="text-sm font-bold text-stone-500">peças</span>
+            <p className="text-3xl font-black text-stone-900 mt-2">
+              {totalStock} <span className="text-base font-bold text-stone-500">peças</span>
             </p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-[11px]">
-            <span className="text-stone-600">
-              <strong>{activeCombos}</strong> Combos • <strong>{activeFlashSales}</strong> Flash Sales
+          <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+            <span className="text-stone-600 font-medium">
+              <strong>{activeCombos}</strong> Combos • <strong>{activeFlashSales}</strong> Flash
             </span>
             {lowStockVariations.length > 0 && (
               <button
@@ -379,36 +379,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-7 bg-white border border-stone-200 rounded-2xl p-5 shadow-xs space-y-4 flex flex-col justify-between">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
-              <h3 className="font-bold text-stone-900 text-base flex items-center gap-2">
-                <BarChart3 className="w-4 h-4 text-rose-600" />
+              <h3 className="font-extrabold text-stone-900 text-lg flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-rose-600" />
                 Faturamento Diário por Canal (Últimos 7 Dias)
               </h3>
-              <p className="text-xs text-stone-500">
+              <p className="text-sm text-stone-500">
                 Comparativo diário entre App Próprio, Shopee, Mercado Livre e TikTok Shop
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold">
-              <span className="flex items-center gap-1 text-stone-700">
+            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold">
+              <span className="flex items-center gap-1.5 text-stone-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
                 App (42%)
               </span>
-              <span className="flex items-center gap-1 text-stone-700">
+              <span className="flex items-center gap-1.5 text-stone-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
                 Shopee (28%)
               </span>
-              <span className="flex items-center gap-1 text-stone-700">
+              <span className="flex items-center gap-1.5 text-stone-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 ML (20%)
               </span>
-              <span className="flex items-center gap-1 text-stone-700">
+              <span className="flex items-center gap-1.5 text-stone-700">
                 <span className="w-2.5 h-2.5 rounded-full bg-stone-800" />
                 TikTok (10%)
               </span>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 sm:gap-4 h-52 items-end bg-stone-50/70 p-4 rounded-xl border border-stone-200 w-full">
+          <div className="grid grid-cols-7 gap-2 sm:gap-4 h-56 items-end bg-stone-50/70 p-4 rounded-xl border border-stone-200 w-full">
             {channelSalesData.map((d) => {
               const dayTotal = d.app + d.shopee + d.ml + d.tiktok;
               const heightPercent = Math.min(100, Math.round((dayTotal / maxDailyTotal) * 100));
@@ -418,7 +418,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   key={d.day}
                   className="flex flex-col items-center h-full justify-end group"
                 >
-                  <span className="text-[10px] font-mono font-bold text-stone-700 mb-1">
+                  <span className="text-xs font-mono font-bold text-stone-700 mb-1">
                     R${(dayTotal / 1000).toFixed(1)}k
                   </span>
 
@@ -448,7 +448,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     />
                   </div>
 
-                  <span className="text-[11px] font-bold text-stone-700 mt-2">{d.day}</span>
+                  <span className="text-xs font-bold text-stone-700 mt-2">{d.day}</span>
                 </div>
               );
             })}
@@ -459,21 +459,21 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-5 bg-white border border-stone-200 rounded-2xl p-5 shadow-xs space-y-3 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-stone-900 text-base flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-rose-600" />
+              <h3 className="font-extrabold text-stone-900 text-lg flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-rose-600" />
                 Horários de Pico de Vendas
               </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
                 Melhor janela: 19h–21h
               </span>
             </div>
-            <p className="text-xs text-stone-500 mt-0.5">
+            <p className="text-sm text-stone-500 mt-0.5">
               Intensidade de pedidos por dia e faixa horária para agendar Lives e Ofertas Relâmpago.
             </p>
           </div>
 
           <div className="space-y-1.5 pt-1">
-            <div className="grid grid-cols-7 text-[10px] font-bold text-stone-400 text-center">
+            <div className="grid grid-cols-7 text-xs font-bold text-stone-400 text-center">
               <span className="text-left">Dia</span>
               {heatmapHours.map((h) => (
                 <span key={h}>{h}</span>
@@ -481,7 +481,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             {heatmapDays.map((row) => (
               <div key={row.day} className="grid grid-cols-7 gap-1 items-center text-xs">
-                <span className="font-bold text-stone-700 text-[11px]">{row.day}</span>
+                <span className="font-bold text-stone-700 text-xs">{row.day}</span>
                 {row.scores.map((score, idx) => {
                   const bgClass =
                     score >= 90
@@ -489,13 +489,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       : score >= 75
                       ? 'bg-rose-400 text-white font-semibold'
                       : score >= 55
-                      ? 'bg-rose-200 text-rose-900'
+                      ? 'bg-rose-200 text-rose-900 font-medium'
                       : 'bg-stone-100 text-stone-500';
                   return (
                     <div
                       key={idx}
                       title={`${row.day} às ${heatmapHours[idx]}: índice ${score}/100`}
-                      className={`h-6 rounded flex items-center justify-center text-[10px] font-mono ${bgClass}`}
+                      className={`h-7 rounded-md flex items-center justify-center text-xs font-mono font-bold ${bgClass}`}
                     >
                       {score}%
                     </div>
@@ -505,8 +505,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             ))}
           </div>
 
-          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
-            <span>Pico: Sexta e Quinta às 20h</span>
+          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs text-stone-600">
+            <span className="font-medium">Pico: Sexta e Quinta às 20h</span>
             <button
               type="button"
               onClick={() => setActiveTab('flash_sales')}
@@ -524,15 +524,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-7 bg-white border border-stone-200 rounded-2xl p-5 shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-stone-200">
             <div>
-              <h3 className="font-bold text-stone-900 text-base flex items-center gap-2">
-                <Flame className="w-4 h-4 text-rose-600" />
+              <h3 className="font-extrabold text-stone-900 text-lg flex items-center gap-2">
+                <Flame className="w-5 h-5 text-rose-600" />
                 Top Produtos & Rentabilidade por Canal
               </h3>
-              <p className="text-xs text-stone-500">
+              <p className="text-sm text-stone-500">
                 Clique em um produto para abrir o demonstrativo de lucro líquido em cada canal
               </p>
             </div>
-            <span className="text-[11px] font-bold text-stone-500">
+            <span className="text-xs font-bold text-stone-500">
               🟢 ≥30% • 🟡 15–30% • 🔴 &lt;15%
             </span>
           </div>
@@ -554,7 +554,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     onClick={() =>
                       setExpandedProductRow(isExpanded ? null : prod.id)
                     }
-                    className="w-full flex items-center justify-between p-3 text-left hover:bg-stone-100/80 transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between p-3.5 text-left hover:bg-stone-100/80 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       {isExpanded ? (
@@ -562,19 +562,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       ) : (
                         <ChevronRight className="w-4 h-4 text-stone-400 shrink-0" />
                       )}
-                      <span className="w-6 h-6 rounded-full bg-rose-100 text-rose-800 font-black text-xs flex items-center justify-center shrink-0">
+                      <span className="w-7 h-7 rounded-full bg-rose-100 text-rose-800 font-black text-xs flex items-center justify-center shrink-0">
                         {idx + 1}
                       </span>
                       <img
                         src={prod.imageUrl}
                         alt={prod.title}
-                        className="w-10 h-10 rounded-lg object-cover border border-stone-200 shrink-0"
+                        className="w-11 h-11 rounded-lg object-cover border border-stone-200 shrink-0"
                       />
                       <div className="truncate">
-                        <h4 className="font-bold text-stone-900 text-xs truncate">
+                        <h4 className="font-extrabold text-stone-900 text-sm truncate">
                           {prod.title}
                         </h4>
-                        <p className="text-[11px] text-stone-500 font-mono">
+                        <p className="text-xs text-stone-500 font-mono mt-0.5">
                           {prod.masterSku} • Custo: R$ {prod.costPrice.toFixed(2)}
                         </p>
                       </div>
@@ -710,20 +710,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       {/* Histórico Recente de Eventos & Movimentações */}
       <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-stone-200">
-          <h3 className="font-bold text-stone-900 text-base flex items-center gap-2">
-            <Clock className="w-4 h-4 text-stone-600" />
+          <h3 className="font-extrabold text-stone-900 text-lg flex items-center gap-2">
+            <Clock className="w-5 h-5 text-stone-600" />
             Últimas Movimentações da Operação
           </h3>
           <button
             type="button"
             onClick={() => setActiveTab('smart_data')}
-            className="text-xs font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
+            className="text-sm font-bold text-rose-600 hover:text-rose-700 cursor-pointer"
           >
             Ver todas na Central de Dados →
           </button>
         </div>
 
-        <div className="space-y-2 text-xs">
+        <div className="space-y-2.5 text-sm">
           {logs.slice(0, 5).map((log) => (
             <div
               key={log.id}
