@@ -29,7 +29,6 @@ export interface StoreProductDto {
   type: string;
   weightGrams: number;
   variations: StoreProductVariationDto[];
-  published: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -118,7 +117,6 @@ export function toStoreProductDto(product: ProductWithRelations): StoreProductDt
     type: product.type,
     weightGrams: product.weightGrams,
     variations: formattedVariations,
-    published: !product.deletedAt,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
   };
