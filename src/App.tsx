@@ -155,7 +155,7 @@ export default function App() {
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Barra contextual limpa no topo da área de trabalho */}
-        <header className="hidden lg:flex h-14 bg-white border-b border-stone-200 px-6 items-center justify-between sticky top-0 z-20">
+        <header className="hidden lg:flex h-14 bg-white border-b border-stone-200 px-4 sm:px-8 lg:px-12 items-center justify-between sticky top-0 z-20 w-full">
           <div className="flex items-center gap-2 text-xs">
             <span className="text-stone-400 font-medium">
               {tabMeta[activeTab]?.group}
@@ -181,7 +181,7 @@ export default function App() {
           </div>
         </header>
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6">
+        <main className="flex-1 w-full px-4 sm:px-8 lg:px-12 py-6">
           {activeTab === 'dashboard' && (
             <DashboardView
               products={products}
@@ -279,8 +279,8 @@ export default function App() {
           {activeTab === 'architecture' && <ArchitectureDocs />}
         </main>
 
-        <footer className="bg-white border-t border-stone-200 py-3.5 px-6 text-xs text-stone-500">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+        <footer className="bg-white border-t border-stone-200 py-3.5 px-4 sm:px-8 lg:px-12 text-xs text-stone-500 w-full">
+          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2">
             <p>
               <strong>sagas.moda ERP Omnichannel</strong> — Gestão Integrada para Loja Própria, Shopee, Mercado Livre e TikTok Shop.
             </p>

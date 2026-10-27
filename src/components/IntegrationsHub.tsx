@@ -205,7 +205,7 @@ export const IntegrationsHub: React.FC = () => {
       </div>
 
       {/* Integrations Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 w-full">
         {filtered.map((item) => {
           const isConnected = item.status === 'CONNECTED';
           const isExpired = item.status === 'ERROR_EXPIRED';

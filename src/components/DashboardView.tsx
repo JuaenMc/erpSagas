@@ -247,7 +247,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       </div>
 
       {/* 4 KPI Cards Principais com Sparklines e Ações Condicionais (P1) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
         {/* Card 1: Faturamento Bruto */}
         <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs flex flex-col justify-between">
           <div>
@@ -408,7 +408,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-7 gap-2 h-48 items-end bg-stone-50/70 p-3.5 rounded-xl border border-stone-200">
+          <div className="grid grid-cols-7 gap-2 sm:gap-4 h-52 items-end bg-stone-50/70 p-4 rounded-xl border border-stone-200 w-full">
             {channelSalesData.map((d) => {
               const dayTotal = d.app + d.shopee + d.ml + d.tiktok;
               const heightPercent = Math.min(100, Math.round((dayTotal / maxDailyTotal) * 100));
@@ -423,7 +423,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </span>
 
                   <div
-                    className="w-full max-w-[38px] rounded-t-lg overflow-hidden flex flex-col-reverse shadow-xs transition-all group-hover:brightness-105"
+                    className="w-full max-w-[56px] rounded-t-lg overflow-hidden flex flex-col-reverse shadow-xs transition-all group-hover:brightness-105"
                     style={{ height: `${heightPercent}%` }}
                   >
                     <div

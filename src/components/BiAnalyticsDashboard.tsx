@@ -449,7 +449,7 @@ export const BiAnalyticsDashboard: React.FC = () => {
       </div>
 
       {/* 4 KPI Cards Executivos Sempre Visíveis */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-4 sm:gap-6 w-full">
         <div className="bg-white border border-stone-200 rounded-2xl p-4 shadow-xs">
           <div className="flex items-center justify-between text-xs text-stone-500">
             <span className="font-semibold">Receita Bruta ({period})</span>
