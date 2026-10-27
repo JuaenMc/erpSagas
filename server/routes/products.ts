@@ -180,6 +180,7 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
           cfopDefault: String(cfopDefault),
           coverImageUrl: coverImageUrl || 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?auto=format&fit=crop&w=900&q=80',
           mediaGallery: Array.isArray(mediaGallery) ? mediaGallery : [],
+          deletedAt: (req.body.status === 'INACTIVE' || req.body.published === false) ? new Date() : null,
         },
       });
 
@@ -273,9 +274,19 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       weightGrams,
       stock,
       initialStockPerVariation,
+      status,
+      published,
     } = req.body;
 
     const updated = await prisma.$transaction(async (tx) => {
+      // Determinar novo status de publicação/deleção
+      let statusDeletedAt: Date | null | undefined = undefined;
+      if (status === 'INACTIVE' || published === false) {
+        statusDeletedAt = new Date();
+      } else if (status === 'ACTIVE' || published === true) {
+        statusDeletedAt = null;
+      }
+
       await tx.product.update({
         where: { id },
         data: {
@@ -286,15 +297,23 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
           ...(coverImageUrl && { coverImageUrl }),
           ...(categoryId && { categoryId }),
           ...(weightGrams && { weightGrams: Number(weightGrams) }),
+          ...(statusDeletedAt !== undefined && { deletedAt: statusDeletedAt }),
           updatedAt: new Date(),
         },
       });
+
+      if (statusDeletedAt !== undefined) {
+        await tx.productVariation.updateMany({
+          where: { productId: id },
+          data: { deletedAt: statusDeletedAt },
+        });
+      }
 
       // Se foi enviado novo saldo de estoque, atualizar na variação principal
       const targetStock = stock !== undefined ? Number(stock) : (initialStockPerVariation !== undefined ? Number(initialStockPerVariation) : null);
       if (targetStock !== null && !isNaN(targetStock)) {
         const variation = await tx.productVariation.findFirst({
-          where: { productId: id, deletedAt: null },
+          where: { productId: id },
           include: { stocks: true },
         });
 

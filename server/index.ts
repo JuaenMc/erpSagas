@@ -4,6 +4,14 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { PrismaClient } from '@prisma/client';
+import {
+  adminAuthMiddleware,
+  verifyAdminAuth,
+  generateAdminToken,
+  ADMIN_COOKIE_NAME,
+  ADMIN_PASSWORD,
+  ERP_INTERNAL_API_KEY,
+} from './admin-auth';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -13,8 +21,6 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
-const ERP_INTERNAL_API_KEY = process.env.ERP_INTERNAL_API_KEY || 'sagas_erp_sec_9f8a3c2b1e4d7f6a5b8c9d0e1f2a3b4c';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'sagas2026admin';
 
 // Inicialização do Prisma Client
 export const prisma = new PrismaClient({
@@ -87,17 +93,16 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// A3: Middleware de validação de API Key para endpoints de escrita (POST, PUT, PATCH, DELETE)
-// Exceto rotas públicas explicitamente isentas
+// A3: Middleware de validação de autenticação para endpoints de mutação da API
+// Valida tanto via header X-ERP-API-KEY quanto via cookie httpOnly sagas_admin_token
 export function requireApiKey(req: Request, res: Response, next: NextFunction) {
   const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
   
   if (isWriteMethod) {
-    const apiKey = req.headers['x-erp-api-key'] || req.headers['X-ERP-API-KEY'];
-    if (!apiKey || apiKey !== ERP_INTERNAL_API_KEY) {
+    if (!verifyAdminAuth(req)) {
       return res.status(401).json({
         error: 'Unauthorized',
-        message: 'Acesso negado: header X-ERP-API-KEY ausente ou inválido.',
+        message: 'Acesso negado: autenticação necessária via X-ERP-API-KEY ou cookie de sessão de admin.',
       });
     }
   }
@@ -110,6 +115,7 @@ app.use('/api', (req, res, next) => {
   if (
     req.method === 'GET' ||
     req.path === '/admin/login' ||
+    req.path === '/admin/logout' ||
     req.path === '/health'
   ) {
     return next();
@@ -130,9 +136,10 @@ app.get(['/', '/admin', '/admin-login'], (_req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/login
- * Autentica o painel administrativo com ADMIN_PASSWORD e retorna chave para mutações
+ * ROTAS /api/admin/*
  */
+
+// POST /api/admin/login: Autentica com senha e define cookie httpOnly
 app.post('/api/admin/login', (req: Request, res: Response) => {
   const { password } = req.body || {};
   if (!password || password !== ADMIN_PASSWORD) {
@@ -141,11 +148,85 @@ app.post('/api/admin/login', (req: Request, res: Response) => {
       message: 'Senha de administrador incorreta.',
     });
   }
+
+  const token = generateAdminToken();
+
+  // Define cookie seguro httpOnly com 7 dias de validade
+  res.cookie(ADMIN_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+
   return res.status(200).json({
     success: true,
     message: 'Autenticado com sucesso no SAGAS ERP.',
+    token,
     apiKey: ERP_INTERNAL_API_KEY,
   });
+});
+
+// POST /api/admin/logout: Limpa cookie httpOnly
+app.post('/api/admin/logout', (_req: Request, res: Response) => {
+  res.clearCookie(ADMIN_COOKIE_NAME, {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+  });
+  return res.status(200).json({
+    success: true,
+    message: 'Sessão administrativa encerrada com sucesso.',
+  });
+});
+
+// GET /api/admin/verify: Verifica status de autenticação da sessão atual
+app.get('/api/admin/verify', (req: Request, res: Response) => {
+  const isAuthenticated = verifyAdminAuth(req);
+  return res.status(isAuthenticated ? 200 : 401).json({
+    success: isAuthenticated,
+    authenticated: isAuthenticated,
+  });
+});
+
+// GET /api/admin/stats: Estatísticas consolidadas para o dashboard (produtos, pedidos, receita)
+app.get('/api/admin/stats', adminAuthMiddleware, async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const [totalProducts, activeProducts, orders, stocks] = await Promise.all([
+      prisma.product.count(),
+      prisma.product.count({ where: { deletedAt: null } }),
+      prisma.order.findMany({ select: { grossTotal: true } }),
+      prisma.warehouseStock.findMany({
+        select: {
+          stockPhysical: true,
+          variation: { select: { product: { select: { basePrice: true } } } },
+        },
+      }),
+    ]);
+
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, ord) => sum + Number(ord.grossTotal || 0), 0);
+    const lowStockCount = stocks.filter(s => s.stockPhysical <= 10).length;
+    const totalInventoryValue = stocks.reduce((sum, s) => {
+      const price = Number(s.variation?.product?.basePrice || 0);
+      return sum + (price * s.stockPhysical);
+    }, 0);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalProducts,
+        activeProducts,
+        totalOrders,
+        totalRevenue,
+        lowStockCount,
+        totalInventoryValue,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
 });
 
 /**
