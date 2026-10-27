@@ -1,9 +1,9 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { PrismaClient, ProductType } from '@prisma/client';
+import { ProductType } from '@prisma/client';
+import { prisma } from '../db';
 import { toStoreProductDto } from '../dto/product.dto';
 
 const router = Router();
-const prisma = new PrismaClient();
 
 /**
  * 1. GET /api/products

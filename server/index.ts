@@ -1,7 +1,12 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './db';
+
+// 1. Importação dos Routers da API no topo do arquivo
+import productsRouter from './routes/products';
+import ordersRouter from './routes/orders';
+import stockRouter from './routes/stock';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -10,15 +15,16 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const ERP_INTERNAL_API_KEY = process.env.ERP_INTERNAL_API_KEY || 'sagas_erp_sec_9f8a3c2b1e4d7f6a5b8c9d0e1f2a3b4c';
 
-// Inicialização do Prisma Client
-export const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
-});
+// Reexportação do prisma client singleton para compatibilidade
+export { prisma };
 
 // A5: Configuração de CORS com origens explicitamente autorizadas
 const allowedOrigins = [
   'http://localhost:3000',     // Loja / App Web
+  'http://localhost:3001',     // Backend Local
   'http://localhost:3002',     // Admin ERP Vite
+  'https://sagas.moda',        // Loja SAGAS Produção
+  'https://www.sagas.moda',
   'capacitor://localhost',     // App Mobile Android / iOS
   'https://localhost',         // App Mobile WebView Seguro
 ];
@@ -37,7 +43,12 @@ app.use(cors({
   origin: (origin, callback) => {
     // Permite requisições sem origin (como curl, mobile apps nativos, Postman ou server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.onrender.com') ||
+      origin.endsWith('.sagas.moda') ||
+      origin.includes('localhost')
+    ) {
       return callback(null, true);
     }
     return callback(new Error(`Origem CORS não autorizada: ${origin}`));
@@ -99,10 +110,29 @@ app.use('/api', (req, res, next) => {
   return requireApiKey(req, res, next);
 });
 
-/**
- * 2. GET /api/health
- * Retorna status da API e validação de query real no banco Neon PostgreSQL
- */
+// ============================================================================
+// 1. ROTAS ESPECÍFICAS DA API (Registradas ANTES de qualquer rota genérica)
+// ============================================================================
+app.use('/api/products', productsRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/stock', stockRouter);
+
+// Endpoint básico para inspeção dos canais cadastrados
+app.get('/api/channels', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const channels = await prisma.channelFeeConfig.findMany({
+      where: { isActive: true },
+      orderBy: { channel: 'asc' },
+    });
+    return res.status(200).json({ data: channels });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ============================================================================
+// 2. HEALTH CHECK (Registrado DEPOIS das rotas específicas)
+// ============================================================================
 app.get('/api/health', async (_req: Request, res: Response) => {
   const startTime = Date.now();
   try {
@@ -142,28 +172,6 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     });
   }
 });
-
-import productsRouter from './routes/products';
-import stockRouter from './routes/stock';
-import ordersRouter from './routes/orders';
-
-// Endpoint básico para inspeção dos canais cadastrados
-app.get('/api/channels', async (_req: Request, res: Response, next: NextFunction) => {
-  try {
-    const channels = await prisma.channelFeeConfig.findMany({
-      where: { isActive: true },
-      orderBy: { channel: 'asc' },
-    });
-    return res.status(200).json({ data: channels });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Registro dos módulos de rotas
-app.use('/api/products', productsRouter);
-app.use('/api/stock', stockRouter);
-app.use('/api/orders', ordersRouter);
 
 // Middleware Global de Tratamento de Erros em JSON
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
