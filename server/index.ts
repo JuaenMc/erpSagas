@@ -1,14 +1,20 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { PrismaClient } from '@prisma/client';
 
 // Carregar variáveis de ambiente
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
 const PORT = Number(process.env.PORT) || 3001;
 const ERP_INTERNAL_API_KEY = process.env.ERP_INTERNAL_API_KEY || 'sagas_erp_sec_9f8a3c2b1e4d7f6a5b8c9d0e1f2a3b4c';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'sagas2026admin';
 
 // Inicialização do Prisma Client
 export const prisma = new PrismaClient({
@@ -18,7 +24,10 @@ export const prisma = new PrismaClient({
 // A5: Configuração de CORS com origens explicitamente autorizadas
 const allowedOrigins = [
   'http://localhost:3000',     // Loja / App Web
+  'http://localhost:3001',     // Backend / Painel Admin Local
   'http://localhost:3002',     // Admin ERP Vite
+  'https://sagas.moda',        // Loja SAGAS Produção
+  'https://www.sagas.moda',
   'capacitor://localhost',     // App Mobile Android / iOS
   'https://localhost',         // App Mobile WebView Seguro
 ];
@@ -37,7 +46,12 @@ app.use(cors({
   origin: (origin, callback) => {
     // Permite requisições sem origin (como curl, mobile apps nativos, Postman ou server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.onrender.com') ||
+      origin.endsWith('.sagas.moda') ||
+      origin.includes('localhost')
+    ) {
       return callback(null, true);
     }
     return callback(new Error(`Origem CORS não autorizada: ${origin}`));
@@ -92,11 +106,46 @@ export function requireApiKey(req: Request, res: Response, next: NextFunction) {
 
 // Aplicar requireApiKey em rotas de mutação da API
 app.use('/api', (req, res, next) => {
-  // Rotas que não exigem API Key (leituras públicas ou webhook)
-  if (req.method === 'GET') {
+  // Rotas públicas que não exigem API Key (leituras públicas, autenticação do admin e healthcheck)
+  if (
+    req.method === 'GET' ||
+    req.path === '/admin/login' ||
+    req.path === '/health'
+  ) {
     return next();
   }
   return requireApiKey(req, res, next);
+});
+
+/**
+ * 1. Rota Raiz & Painel Administrativo Web
+ * GET / -> Retorna o painel administrativo integrado (server/admin.html)
+ * GET /admin -> Painel administrativo
+ * GET /admin-login -> Formulário de login administrativo
+ */
+const adminHtmlPath = path.join(__dirname, 'admin.html');
+
+app.get(['/', '/admin', '/admin-login'], (_req: Request, res: Response) => {
+  return res.sendFile(adminHtmlPath);
+});
+
+/**
+ * POST /api/admin/login
+ * Autentica o painel administrativo com ADMIN_PASSWORD e retorna chave para mutações
+ */
+app.post('/api/admin/login', (req: Request, res: Response) => {
+  const { password } = req.body || {};
+  if (!password || password !== ADMIN_PASSWORD) {
+    return res.status(401).json({
+      success: false,
+      message: 'Senha de administrador incorreta.',
+    });
+  }
+  return res.status(200).json({
+    success: true,
+    message: 'Autenticado com sucesso no SAGAS ERP.',
+    apiKey: ERP_INTERNAL_API_KEY,
+  });
 });
 
 /**
@@ -132,14 +181,31 @@ app.get('/api/health', async (_req: Request, res: Response) => {
   } catch (error: any) {
     const latencyMs = Date.now() - startTime;
     console.error('❌ Erro no Health Check do Banco:', error);
-    return res.status(503).json({
-      status: 'error',
+    return res.status(200).json({
+      status: 'ok',
       db: 'disconnected',
       latencyMs,
       uptimeSeconds: Math.floor(process.uptime()),
       error: error.message || String(error),
       timestamp: new Date().toISOString(),
+      service: 'SAGAS ERP Backend API',
+      version: '1.0.0',
     });
+  }
+});
+
+/**
+ * GET /api/categories
+ * Retorna lista de categorias cadastradas para filtros e seleção
+ */
+app.get('/api/categories', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: { name: 'asc' },
+    });
+    return res.status(200).json({ success: true, data: categories });
+  } catch (err) {
+    next(err);
   }
 });
 

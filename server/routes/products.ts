@@ -11,11 +11,13 @@ const prisma = new PrismaClient();
  */
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { categoryId, search } = req.query;
+    const { categoryId, search, includeUnpublished } = req.query;
 
-    const whereClause: any = {
-      deletedAt: null,
-    };
+    const whereClause: any = {};
+
+    if (includeUnpublished !== 'true') {
+      whereClause.deletedAt = null;
+    }
 
     if (categoryId && typeof categoryId === 'string') {
       whereClause.categoryId = categoryId;
@@ -269,6 +271,8 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
       coverImageUrl,
       categoryId,
       weightGrams,
+      stock,
+      initialStockPerVariation,
     } = req.body;
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -285,6 +289,22 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
           updatedAt: new Date(),
         },
       });
+
+      // Se foi enviado novo saldo de estoque, atualizar na variação principal
+      const targetStock = stock !== undefined ? Number(stock) : (initialStockPerVariation !== undefined ? Number(initialStockPerVariation) : null);
+      if (targetStock !== null && !isNaN(targetStock)) {
+        const variation = await tx.productVariation.findFirst({
+          where: { productId: id, deletedAt: null },
+          include: { stocks: true },
+        });
+
+        if (variation && variation.stocks && variation.stocks.length > 0) {
+          await tx.warehouseStock.update({
+            where: { id: variation.stocks[0].id },
+            data: { stockPhysical: targetStock },
+          });
+        }
+      }
 
       return tx.product.findUniqueOrThrow({
         where: { id },
@@ -310,7 +330,69 @@ router.put('/:id', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * 5. DELETE /api/products/:id
+ * 5. POST /api/products/:id/toggle-publish
+ * Publica ou despublica um produto no catálogo
+ */
+router.post('/:id/toggle-publish', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        variations: {
+          include: { stocks: true },
+        },
+      },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        error: 'NotFound',
+        message: `Produto ${id} não encontrado.`,
+      });
+    }
+
+    const isCurrentlyDeleted = !!product.deletedAt;
+    const newDeletedAt = isCurrentlyDeleted ? null : new Date();
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.product.update({
+        where: { id },
+        data: { deletedAt: newDeletedAt },
+      });
+
+      await tx.productVariation.updateMany({
+        where: { productId: id },
+        data: { deletedAt: newDeletedAt },
+      });
+
+      return tx.product.findUniqueOrThrow({
+        where: { id },
+        include: {
+          category: true,
+          variations: {
+            include: { stocks: true },
+          },
+        },
+      });
+    });
+
+    const dto = toStoreProductDto(updated);
+    return res.status(200).json({
+      success: true,
+      published: !newDeletedAt,
+      message: newDeletedAt ? 'Produto despublicado com sucesso.' : 'Produto publicado com sucesso!',
+      data: dto,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * 6. DELETE /api/products/:id
  * Soft delete do produto e suas variações
  */
 router.delete('/:id', async (req: Request, res: Response, next: NextFunction) => {
