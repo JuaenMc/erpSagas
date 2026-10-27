@@ -46,6 +46,7 @@ app.use(cors({
     if (
       allowedOrigins.includes(origin) ||
       origin.endsWith('.onrender.com') ||
+      origin.endsWith('.run.app') ||
       origin.endsWith('.sagas.moda') ||
       origin.includes('localhost')
     ) {

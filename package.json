@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "tsx server/index.ts",
-    "dev": "vite --port=3002 --host=0.0.0.0",
+    "dev": "vite --port=3000 --host=0.0.0.0",
     "dev:server": "tsx watch server/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",

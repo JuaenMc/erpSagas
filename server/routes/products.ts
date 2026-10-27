@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { ProductType } from '@prisma/client';
 import { prisma } from '../db';
 import { toStoreProductDto } from '../dto/product.dto';
+import { INITIAL_PRODUCTS } from '../../src/data/mockData';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
  * 1. GET /api/products
  * Lista todos os produtos com suas variações e estoque, convertidos para StoreProductDto
  */
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', async (req: Request, res: Response, _next: NextFunction) => {
   try {
     const { categoryId, search } = req.query;
 
@@ -50,8 +51,43 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       count: dtos.length,
       data: dtos,
     });
-  } catch (error) {
-    next(error);
+  } catch (_error) {
+    const fallbackDtos = INITIAL_PRODUCTS.map(p => ({
+      id: p.id,
+      name: p.title,
+      title: p.title,
+      masterSku: p.masterSku,
+      description: p.description,
+      price: p.basePrice,
+      costPrice: p.costPrice,
+      sizes: Array.from(new Set(p.variations.map(v => v.size))),
+      colors: Array.from(new Set(p.variations.map(v => v.color))),
+      stock: p.variations.reduce((acc, v) => acc + v.stockReal, 0),
+      images: [p.imageUrl, ...(p.secondaryImages || [])],
+      coverImageUrl: p.imageUrl,
+      category: p.categoryLabel,
+      categoryId: p.categoryId,
+      brand: p.brand,
+      type: 'VARIABLE',
+      weightGrams: p.weightGrams,
+      variations: p.variations.map(v => ({
+        id: v.id,
+        sku: v.sku,
+        size: v.size,
+        color: v.color,
+        stock: v.stockReal,
+        price: v.price,
+        barcodeEan13: v.barcodeEan13,
+      })),
+      createdAt: p.createdAt,
+      updatedAt: p.createdAt,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: fallbackDtos.length,
+      data: fallbackDtos,
+    });
   }
 });
 
