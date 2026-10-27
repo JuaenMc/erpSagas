@@ -1,5 +1,8 @@
-const API_BASE = (import.meta as any).env?.VITE_API_URL || '';
-const API_KEY = (import.meta as any).env?.VITE_API_KEY || 'sagas_erp_sec_9f8a3c2b1e4d7f6a5b8c9d0e1f2a3b4c';
+const API_BASE = ((import.meta as any).env?.VITE_API_URL || '').replace(/\/$/, '');
+const API_KEY =
+  (import.meta as any).env?.VITE_ERP_API_KEY ||
+  (import.meta as any).env?.VITE_API_KEY ||
+  'sagas_erp_prod_e8d7c6b5a49382710f1e2d3c4b5a69788796a5b4c3d2e1f0123456789abcdef0';
 
 export interface ApiResponse<T = any> {
   success: boolean;
