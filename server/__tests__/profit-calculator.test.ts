@@ -10,41 +10,27 @@ import {
   ChannelFeeConfigModel,
 } from '../../src/logic/profit-calculator';
 import { MarketplaceChannel, Product } from '../../src/types';
+import { INITIAL_PRODUCTS } from '../../src/data/mockData';
 
 describe('ProfitCalculatorService & Logic Unit Tests', () => {
   let service: ProfitCalculatorService;
 
   const mockProduct: Product = {
+    ...INITIAL_PRODUCTS[0],
     id: 'prod-test-01',
-    tenantId: 'tenant-01',
-    categoryId: 'cat-01',
-    title: 'Vestido Floral Elegance',
-    masterSku: 'VEST-FLORAL-01',
     basePrice: 100.0,
     costPrice: 40.0,
-    type: 'VARIABLE',
-    status: 'ACTIVE',
-    weightGrams: 250,
-    description: 'Vestido floral midi em viscose premium',
-    coverImageUrl: 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446',
-    brand: 'sagas.moda',
-    mediaGallery: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
     variations: [
       {
         id: 'var-test-01',
-        productId: 'prod-test-01',
         sku: 'VEST-FLORAL-01-M-AZUL',
         size: 'M',
         color: 'Azul',
         price: 110.0,
         costPrice: 42.0,
         barcodeEan13: '7891234567890',
-        stockPhysical: 15,
-        stockReservedOrder: 0,
-        stockReservedPromo: 0,
-        stockAvailable: 15,
+        stockReal: 15,
+        stockReserved: 0,
       },
     ],
   };

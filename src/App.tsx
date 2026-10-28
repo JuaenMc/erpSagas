@@ -21,8 +21,9 @@ import {
   INITIAL_ORDERS,
   INITIAL_LOGS,
 } from './data/mockData';
-import { ComboRuleModel, FlashSaleModel, Order, IntegrationLog } from './types';
+import { ComboRuleModel, FlashSaleModel, Order, IntegrationLog, MarketplaceChannel } from './types';
 import { useProducts } from './hooks/useProducts';
+import apiClient from './services/apiClient';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
@@ -76,6 +77,88 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+function mapBackendOrderToErpOrder(raw: any): Order {
+  let erpStatus: Order['status'] = 'PENDING_PAYMENT';
+  if (raw.status === 'PAID' || raw.status === 'PICKING') erpStatus = 'PROCESSING';
+  else if (raw.status === 'CHECKED' || raw.status === 'PACKED') erpStatus = 'LABEL_GENERATED';
+  else if (raw.status === 'SHIPPED') erpStatus = 'SHIPPED';
+  else if (raw.status === 'DELIVERED') erpStatus = 'DELIVERED';
+  else if (raw.status === 'CANCELLED') erpStatus = 'CANCELLED';
+
+  let deliveryStatus: Order['deliveryStatus'] = 'PENDENTE';
+  if (raw.status === 'SHIPPED') deliveryStatus = 'EM_TRANSITO';
+  else if (raw.status === 'DELIVERED') deliveryStatus = 'ENTREGUE';
+
+  return {
+    id: raw.id,
+    orderNumber: raw.orderNumber,
+    channel: (raw.channel as MarketplaceChannel) || 'APP_SAGAS',
+    channelOrderId: raw.externalOrderId || raw.orderNumber,
+    customerName: raw.customerName || raw.customer?.fullName || 'Cliente SAGAS',
+    customerDoc: '***.***.***-**',
+    customerPhone: raw.customerPhone || raw.customer?.phone,
+    shippingAddress: {
+      street: 'Av. Paulista',
+      number: '1578',
+      neighborhood: 'Bela Vista',
+      city: 'São Paulo',
+      state: 'SP',
+      zipCode: '01310-200',
+    },
+    carrierService: 'CORREIOS_SEDEX',
+    items: (raw.items || []).map((it: any, idx: number) => ({
+      id: it.id || `it-${idx}`,
+      productId: it.productId || it.variationId || `prod-${idx}`,
+      productName: it.name || it.title || 'Peça SAGAS',
+      sku: it.sku || `SKU-${idx}`,
+      size: it.size || 'M',
+      color: it.color || 'Padrão',
+      quantity: Number(it.quantity || 1),
+      originalUnitPrice: Number(it.unitPrice || 49.9),
+      finalUnitPrice: Number(it.unitPrice || 49.9),
+      discountAllocated: 0,
+    })),
+    subtotal: Number(raw.total || raw.grossTotal || 0) - Number(raw.shipping || raw.shippingCharged || 0),
+    discount: Number(raw.discountTotal || 0),
+    shippingFee: Number(raw.shipping || raw.shippingCharged || 0),
+    total: Number(raw.total || raw.grossTotal || 0),
+    saleType: 'NORMAL',
+    status: erpStatus,
+    createdAt: raw.createdAt || new Date().toISOString(),
+    trackingNumber: raw.trackingCode || `BR${(raw.orderNumber || '').replace(/\D/g, '') || '94820184'}SP`,
+    trackingCode: raw.trackingCode,
+    deliveryStatus,
+    labelPrinted: ['PACKED', 'SHIPPED', 'DELIVERED'].includes(raw.status),
+  };
+}
+
+  // Carregar dados reais do banco Neon no carregamento
+  useEffect(() => {
+    async function loadRealData() {
+      try {
+        const resOrders = await apiClient.get<any>('/api/orders');
+        const rawList = Array.isArray(resOrders) ? resOrders : (resOrders?.data || []);
+        if (Array.isArray(rawList) && rawList.length > 0) {
+          const mapped = rawList.map(mapBackendOrderToErpOrder);
+          setOrders(mapped);
+        }
+      } catch (err) {
+        // mantém inicial
+      }
+
+      try {
+        const resCombos = await apiClient.get<any>('/api/combos');
+        const rawCombos = Array.isArray(resCombos) ? resCombos : (resCombos?.data || []);
+        if (Array.isArray(rawCombos) && rawCombos.length > 0) {
+          setCombos(rawCombos);
+        }
+      } catch (err) {
+        // mantém inicial
+      }
+    }
+    loadRealData();
+  }, []);
+
   const pendingLabelsCount = orders.filter((o) => !o.labelPrinted).length;
   const activeCombosCount = combos.filter((c) => c.active).length;
 
@@ -113,14 +196,14 @@ export default function App() {
     setLogs((prev) => [newLog, ...prev]);
   };
 
-  const quickCommands: Array<{ label: string; tab: ActiveTab; section: string }> = [
-    { label: 'Simular Lucro por Canal e Ajustar Preços', tab: 'publisher', section: 'Catálogo & Lucro' },
-    { label: 'Consultar Central de Dados (Produtos, Pedidos, Clientes)', tab: 'smart_data', section: 'Central de Dados' },
-    { label: 'Criar Regra no Motor de Automações (Quando → Então)', tab: 'automations', section: 'Automações' },
-    { label: 'Gerar Pedido de Compra e Ver Devoluções por Tamanho', tab: 'purchases_fashion', section: 'Compras & Moda BI' },
-    { label: 'Imprimir Etiquetas 10x15 com DANFE Simplificado', tab: 'logistics', section: 'Expedição' },
-    { label: 'Acompanhar Rastreamento de Pacotes', tab: 'tracking', section: 'Pós-Venda' },
-    { label: 'Analisar Indicadores Financeiros e DRE', tab: 'bi_analytics', section: 'Financeiro' },
+  const quickCommands = [
+    { label: 'Simular Lucro por Canal e Ajustar Preços', tab: 'publisher' as ActiveTab, section: 'Catálogo & Lucro' },
+    { label: 'Consultar Central de Dados (Produtos, Pedidos, Clientes)', tab: 'smart_data' as ActiveTab, section: 'Central de Dados' },
+    { label: 'Criar Regra no Motor de Automações (Quando → Então)', tab: 'automations' as ActiveTab, section: 'Automações' },
+    { label: 'Gerar Pedido de Compra e Ver Devoluções por Tamanho', tab: 'purchases_fashion' as ActiveTab, section: 'Compras & Moda BI' },
+    { label: 'Imprimir Etiquetas 10x15 com DANFE Simplificado', tab: 'logistics' as ActiveTab, section: 'Expedição' },
+    { label: 'Acompanhar Rastreamento de Pacotes', tab: 'tracking' as ActiveTab, section: 'Pós-Venda' },
+    { label: 'Analisar Indicadores Financeiros e DRE', tab: 'bi_analytics' as ActiveTab, section: 'Financeiro' },
   ].filter((cmd) =>
     cmd.label.toLowerCase().includes(commandSearch.toLowerCase()) ||
     cmd.section.toLowerCase().includes(commandSearch.toLowerCase())

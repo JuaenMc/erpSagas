@@ -410,6 +410,64 @@ async function main() {
 
   console.log(`✅ 3 Produtos de exemplo (Simples, Grade 8 Variações, Kit) populados com estoque no CD-SP-01!`);
 
+  // 10. Cupons Oficiais da Loja SAGAS
+  const defaultCoupons = [
+    {
+      code: 'BEMVINDA10',
+      type: 'PERCENTAGE',
+      value: 10,
+      minPurchase: 50,
+      validUntil: new Date('2028-12-31T23:59:59Z'),
+      isActive: true,
+    },
+    {
+      code: 'SAGAS15',
+      type: 'PERCENTAGE',
+      value: 15,
+      minPurchase: 100,
+      validUntil: new Date('2028-12-31T23:59:59Z'),
+      isActive: true,
+    },
+    {
+      code: 'BEMVINDA',
+      type: 'FIXED',
+      value: 15,
+      minPurchase: 80,
+      validUntil: new Date('2028-12-31T23:59:59Z'),
+      isActive: true,
+    },
+    {
+      code: 'VIP20',
+      type: 'PERCENTAGE',
+      value: 20,
+      minPurchase: 150,
+      validUntil: new Date('2028-12-31T23:59:59Z'),
+      isActive: true,
+    },
+  ];
+
+  for (const cupom of defaultCoupons) {
+    await prisma.coupon.upsert({
+      where: { code: cupom.code },
+      update: {
+        type: cupom.type,
+        value: cupom.value,
+        minPurchase: cupom.minPurchase,
+        validUntil: cupom.validUntil,
+        isActive: cupom.isActive,
+      },
+      create: {
+        code: cupom.code,
+        type: cupom.type,
+        value: cupom.value,
+        minPurchase: cupom.minPurchase,
+        validUntil: cupom.validUntil,
+        isActive: cupom.isActive,
+      },
+    });
+  }
+  console.log(`✅ ${defaultCoupons.length} Cupons cadastrados no Neon DB (BEMVINDA10, SAGAS15, BEMVINDA, VIP20)`);
+
   console.log('🎉 Seed concluído com êxito no Neon PostgreSQL!');
 }
 

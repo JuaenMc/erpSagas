@@ -140,7 +140,7 @@ export const PurchasesAndFashionView: React.FC<PurchasesAndFashionViewProps> = (
       sku: sug.sku,
       variationLabel: `${sug.productTitle} · Tam ${sug.size}`,
       quantity: sug.suggestedQty || 30,
-      unitCost: sug.unitCost,
+      unitCost: sug.unitCost || 18.5,
       status: 'Rascunho',
     };
     setPurchaseOrders((prev) => [newPo, ...prev]);

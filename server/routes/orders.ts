@@ -291,8 +291,10 @@ router.post('/', async (req: Request, res: Response, next: NextFunction) => {
         });
       }
 
-      // 2d. Criar Pedido
-      const orderNumber = `SG-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+      // 2d. Criar Pedido com formato SG-YYYYMMDD-XXX
+      const todayStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomSuffix = Math.floor(100 + Math.random() * 900);
+      const orderNumber = `SG-${todayStr}-${randomSuffix}`;
       const platformFeeTotal = channelConfig
         ? calculatedGrossTotal * (Number(channelConfig.commissionPct) / 100) +
           calculatedGrossTotal * (Number(channelConfig.paymentFeePct) / 100) +
@@ -847,6 +849,58 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
         })),
         packages: order.packages,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * A6. PUT /api/orders/:id/status
+ * Atualização direta de status operacional do pedido
+ */
+router.put('/:id/status', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { status, trackingCode } = req.body;
+
+    let order = await prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      order = await prisma.order.findFirst({ where: { orderNumber: id } });
+    }
+
+    if (!order) {
+      return res.status(404).json({ success: false, error: 'NotFoundError', message: `Pedido ${id} não encontrado.` });
+    }
+
+    const previousStatus = order.status;
+    const updated = await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        ...(status ? { status: status as OrderStatus } : {}),
+        ...(trackingCode ? { trackingCode } : {}),
+        ...(status === 'SHIPPED' ? { shippedAt: new Date() } : {}),
+        ...(status === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
+        ...(status === 'CANCELLED' ? { cancelledAt: new Date() } : {}),
+        updatedAt: new Date(),
+      },
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        tenantId: order.tenantId,
+        entityName: 'Order',
+        entityId: order.id,
+        action: 'STATUS_UPDATED',
+        beforeState: { status: previousStatus },
+        afterState: { status: updated.status, trackingCode },
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Status atualizado para ${updated.status}`,
+      data: updated,
     });
   } catch (error) {
     next(error);

@@ -7,6 +7,15 @@ import { prisma } from './db';
 import productsRouter from './routes/products';
 import ordersRouter from './routes/orders';
 import stockRouter from './routes/stock';
+import authRouter from './routes/auth';
+import cartRouter from './routes/cart';
+import favoritesRouter from './routes/favorites';
+import addressesRouter from './routes/addresses';
+import couponsRouter from './routes/coupons';
+import shippingRouter from './routes/shipping';
+import paymentRouter from './routes/payment';
+import adminRouter from './routes/admin';
+import combosRouter from './routes/combos';
 
 // Carregar variáveis de ambiente
 dotenv.config();
@@ -85,12 +94,27 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// A3: Middleware de validação de API Key para endpoints de escrita (POST, PUT, PATCH, DELETE)
-// Exceto rotas públicas explicitamente isentas
+// A3: Middleware de validação de API Key para endpoints protegidos do ERP
+// Rotas da loja e webhooks são públicas ou protegidas via JWT
 export function requireApiKey(req: Request, res: Response, next: NextFunction) {
   const isWriteMethod = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
   
   if (isWriteMethod) {
+    // Permitir rotas públicas da loja, checkout e webhooks
+    const isPublicStoreRoute =
+      req.path.startsWith('/auth') ||
+      req.path.startsWith('/cart') ||
+      req.path.startsWith('/favorites') ||
+      req.path.startsWith('/addresses') ||
+      req.path.startsWith('/shipping') ||
+      req.path.startsWith('/coupons') ||
+      req.path.startsWith('/payment') ||
+      req.path === '/orders';
+
+    if (isPublicStoreRoute) {
+      return next();
+    }
+
     const apiKey = req.headers['x-erp-api-key'] || req.headers['X-ERP-API-KEY'];
     if (!apiKey || apiKey !== ERP_INTERNAL_API_KEY) {
       return res.status(401).json({
@@ -104,7 +128,7 @@ export function requireApiKey(req: Request, res: Response, next: NextFunction) {
 
 // Aplicar requireApiKey em rotas de mutação da API
 app.use('/api', (req, res, next) => {
-  // Rotas que não exigem API Key (leituras públicas ou webhook)
+  // Rotas que não exigem API Key (leituras públicas ou rotas de clientes)
   if (req.method === 'GET') {
     return next();
   }
@@ -112,8 +136,18 @@ app.use('/api', (req, res, next) => {
 });
 
 // ============================================================================
-// 1. ROTAS ESPECÍFICAS DA API (Registradas ANTES de qualquer rota genérica)
+// 1. ROTAS ESPECÍFICAS DA API
 // ============================================================================
+app.use('/api/auth', authRouter);
+app.use('/api/cart', cartRouter);
+app.use('/api/favorites', favoritesRouter);
+app.use('/api/addresses', addressesRouter);
+app.use('/api/coupons', couponsRouter);
+app.use('/api/shipping', shippingRouter);
+app.use('/api/payment', paymentRouter);
+app.use('/api/mercadopago', paymentRouter); // Aliases para compatibilidade total
+app.use('/api/admin', adminRouter);
+app.use('/api/combos', combosRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/stock', stockRouter);
