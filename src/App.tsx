@@ -14,6 +14,7 @@ import { TrackingHub } from './components/TrackingHub';
 import { SmartDataHub, SavedSegment } from './components/SmartDataHub';
 import { AutomationEngineView } from './components/AutomationEngineView';
 import { PurchasesAndFashionView } from './components/PurchasesAndFashionView';
+import { AIIntegrations } from './pages/AIIntegrations';
 import { Search, ArrowRight } from 'lucide-react';
 import {
   INITIAL_COMBOS,
@@ -201,6 +202,7 @@ export default function App() {
     { label: 'Imprimir Etiquetas 10x15 com DANFE Simplificado', tab: 'logistics' as ActiveTab, section: 'Expedição' },
     { label: 'Acompanhar Rastreamento de Pacotes', tab: 'tracking' as ActiveTab, section: 'Pós-Venda' },
     { label: 'Analisar Indicadores Financeiros e DRE', tab: 'bi_analytics' as ActiveTab, section: 'Financeiro' },
+    { label: 'Gerenciar Integrações AI, Chaves M2M e Preços Dinâmicos para Agentes', tab: 'ai_integrations' as ActiveTab, section: 'Agentic Commerce' },
   ].filter(
     (cmd) =>
       cmd.label.toLowerCase().includes(commandSearch.toLowerCase()) ||
@@ -220,6 +222,7 @@ export default function App() {
     tracking: { group: 'Expedição & Pós-Venda', title: 'Rastreamento Unificado' },
     automations: { group: 'Automações & Canais', title: 'Motor de Automações (Quando → Então)' },
     integrations: { group: 'Automações & Canais', title: 'Canais Conectados' },
+    ai_integrations: { group: 'Automações & Canais', title: 'Integrações AI & Agentic Commerce (M2M)' },
     mobile_app: { group: 'Automações & Canais', title: 'App sagas.moda (Preview Mobile)' },
     architecture: { group: 'Automações & Canais', title: 'Arquitetura & Documentação' },
   };
@@ -298,6 +301,8 @@ export default function App() {
           )}
 
           {activeTab === 'integrations' && <IntegrationsHub />}
+
+          {activeTab === 'ai_integrations' && <AIIntegrations />}
 
           {activeTab === 'tracking' && (
             <TrackingHub

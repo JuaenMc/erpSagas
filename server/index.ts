@@ -14,6 +14,7 @@ import addressesRouter from './routes/addresses';
 import cartRouter from './routes/cart';
 import favoritesRouter from './routes/favorites';
 import paymentRouter from './routes/payment';
+import agentApiRouter from './routes/agent-api';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -70,7 +71,14 @@ app.use(
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Tenant-Slug', 'x-api-key'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Tenant-Slug',
+      'x-api-key',
+      'x-agent-api-key',
+      'x-agent-id',
+    ],
     credentials: true,
   })
 );
@@ -183,6 +191,7 @@ app.use('/api/addresses', addressesRouter);
 app.use('/api/cart', cartRouter);
 app.use('/api/favorites', favoritesRouter);
 app.use('/api/payment', paymentRouter);
+app.use('/api/v2/agent', agentApiRouter);
 
 // ============================================================================
 // 8. TRATAMENTO PADRONIZADO DE ERROS (400, 401, 404, 409, 500)

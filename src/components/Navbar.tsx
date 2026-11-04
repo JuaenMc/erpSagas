@@ -21,6 +21,7 @@ import {
   Search,
   Menu,
   X,
+  Bot,
 } from 'lucide-react';
 
 export type ActiveTab =
@@ -31,6 +32,7 @@ export type ActiveTab =
   | 'automations'
   | 'purchases_fashion'
   | 'integrations'
+  | 'ai_integrations'
   | 'tracking'
   | 'combos'
   | 'flash_sales'
@@ -183,6 +185,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           label: 'Canais Conectados',
           subtitle: 'Shopee, ML, TikTok e Frete',
           icon: RefreshCw,
+        },
+        {
+          id: 'ai_integrations',
+          label: 'Integrações AI',
+          subtitle: 'API M2M, Logs & Preço IA',
+          icon: Bot,
+          badge: 'M2M',
+          badgeColor: 'bg-rose-500 text-white',
         },
         {
           id: 'mobile_app',
@@ -397,7 +407,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center justify-between text-[11px]">
                 <span className="text-stone-400 font-medium flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  4 Canais Sincronizados
+                  4 Canais + API M2M
                 </span>
                 <span className="text-emerald-400 font-bold">Online</span>
               </div>
@@ -412,12 +422,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                   TikTok: <strong className="text-emerald-300">Ativo</strong>
                 </div>
                 <div className="bg-stone-900 px-2 py-1 rounded border border-stone-800 truncate">
-                  App: <strong className="text-emerald-300">Ativo</strong>
+                  M2M IA: <strong className="text-rose-400">v2.0</strong>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex justify-center" title="Todos os 4 canais sincronizados">
+            <div className="flex justify-center" title="Todos os canais e API M2M sincronizados">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
           )}
