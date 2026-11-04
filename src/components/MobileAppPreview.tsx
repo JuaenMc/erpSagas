@@ -34,10 +34,7 @@ export const MobileAppPreview: React.FC<MobileAppPreviewProps> = ({
   onPlaceAppOrder,
 }) => {
   const [activeCategory, setActiveCategory] = useState<'novidades' | 'feminino' | 'infantil' | 'promocoes'>('feminino');
-  const [selectedComboItemIds, setSelectedComboItemIds] = useState<string[]>([
-    'prod-1-vestido-floral',
-    'prod-2-jardineira-unissex',
-  ]);
+  const [selectedComboItemIds, setSelectedComboItemIds] = useState<string[]>([]);
   const [cartCount, setCartCount] = useState<number>(3);
   const [orderPlacedFeedback, setOrderPlacedFeedback] = useState<boolean>(false);
   const [showOriginalScreenshot, setShowOriginalScreenshot] = useState<boolean>(false);
