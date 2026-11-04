@@ -9,6 +9,7 @@
     "dev:server": "tsx watch server/index.ts",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "cleanup:demo": "tsx server/scripts/cleanup-demo-data.ts",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
