@@ -714,6 +714,8 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         customer: {
           select: { id: true, fullName: true, email: true, phone: true },
         },
+        address: true,
+        packages: true,
         items: {
           include: {
             variation: {
@@ -741,14 +743,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
       externalOrderId: o.externalOrderId,
       channel: o.channel,
       status: o.status,
+      trackingCode: o.trackingCode || o.packages?.[0]?.trackingCode || null,
       customerName: o.customer.fullName,
       customerEmail: o.customer.email,
+      customerPhone: o.customer.phone,
+      address: o.address,
       total: Number(o.grossTotal),
+      grossTotal: Number(o.grossTotal),
+      netRevenue: Number(o.netRevenue),
+      platformFeeTotal: Number(o.platformFeeTotal),
       shipping: Number(o.shippingCharged),
       createdAt: o.createdAt.toISOString(),
       updatedAt: o.updatedAt.toISOString(),
       items: o.items.map(it => ({
         id: it.id,
+        productId: it.variation.product.id,
         variationId: it.variationId,
         name: it.variation.product.title,
         sku: it.variation.sku,
@@ -757,6 +766,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
         image: it.variation.product.coverImageUrl,
         quantity: it.quantity,
         unitPrice: Number(it.unitPrice),
+        unitCostCmv: Number(it.unitCostCmv),
       })),
     }));
 

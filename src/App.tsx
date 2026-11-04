@@ -18,7 +18,6 @@ import { Search, ArrowRight } from 'lucide-react';
 import {
   INITIAL_COMBOS,
   INITIAL_FLASH_SALES,
-  INITIAL_ORDERS,
   INITIAL_LOGS,
 } from './data/mockData';
 import { ComboRuleModel, FlashSaleModel, Order, IntegrationLog, MarketplaceChannel } from './types';
@@ -27,7 +26,7 @@ import apiClient from './services/apiClient';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
-  const { products, setProducts, loading: loadingProducts, refetch: refetchProducts, createProduct } = useProducts();
+  const { products, setProducts } = useProducts();
   const [combos, setCombos] = useState<ComboRuleModel[]>(INITIAL_COMBOS);
   const [flashSales, setFlashSales] = useState<FlashSaleModel[]>(INITIAL_FLASH_SALES);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -52,14 +51,6 @@ export default function App() {
       logicOperator: 'E',
       conditionsCount: 1,
     },
-    {
-      id: 'seg-3',
-      name: 'Coleção Anterior',
-      entity: 'produtos',
-      query: 'sku:CONJ',
-      logicOperator: 'OU',
-      conditionsCount: 1,
-    },
   ]);
 
   // Atalho global Ctrl+K / Cmd+K
@@ -77,82 +68,88 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-function mapBackendOrderToErpOrder(raw: any): Order {
-  let erpStatus: Order['status'] = 'PENDING_PAYMENT';
-  if (raw.status === 'PAID' || raw.status === 'PICKING') erpStatus = 'PROCESSING';
-  else if (raw.status === 'CHECKED' || raw.status === 'PACKED') erpStatus = 'LABEL_GENERATED';
-  else if (raw.status === 'SHIPPED') erpStatus = 'SHIPPED';
-  else if (raw.status === 'DELIVERED') erpStatus = 'DELIVERED';
-  else if (raw.status === 'CANCELLED') erpStatus = 'CANCELLED';
+  function mapBackendOrderToErpOrder(raw: any): Order {
+    let erpStatus: Order['status'] = 'PENDING_PAYMENT';
+    if (raw.status === 'PAID' || raw.status === 'PICKING') erpStatus = 'PAID';
+    else if (raw.status === 'CHECKED' || raw.status === 'PACKED') erpStatus = 'LABEL_GENERATED';
+    else if (raw.status === 'SHIPPED') erpStatus = 'SHIPPED';
+    else if (raw.status === 'DELIVERED') erpStatus = 'DELIVERED';
+    else if (raw.status === 'CANCELLED') erpStatus = 'CANCELLED';
 
-  let deliveryStatus: Order['deliveryStatus'] = 'PENDENTE';
-  if (raw.status === 'SHIPPED') deliveryStatus = 'EM_TRANSITO';
-  else if (raw.status === 'DELIVERED') deliveryStatus = 'ENTREGUE';
+    let deliveryStatus: Order['deliveryStatus'] = 'PENDENTE';
+    if (raw.status === 'PAID') deliveryStatus = 'POSTADO';
+    else if (raw.status === 'SHIPPED') deliveryStatus = 'EM_TRANSITO';
+    else if (raw.status === 'DELIVERED') deliveryStatus = 'ENTREGUE';
 
-  return {
-    id: raw.id,
-    orderNumber: raw.orderNumber,
-    channel: (raw.channel as MarketplaceChannel) || 'APP_SAGAS',
-    channelOrderId: raw.externalOrderId || raw.orderNumber,
-    customerName: raw.customerName || raw.customer?.fullName || 'Cliente SAGAS',
-    customerDoc: '***.***.***-**',
-    customerPhone: raw.customerPhone || raw.customer?.phone,
-    shippingAddress: {
-      street: 'Av. Paulista',
-      number: '1578',
-      neighborhood: 'Bela Vista',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01310-200',
-    },
-    carrierService: 'CORREIOS_SEDEX',
-    items: (raw.items || []).map((it: any, idx: number) => ({
-      id: it.id || `it-${idx}`,
-      productId: it.productId || it.variationId || `prod-${idx}`,
-      productName: it.name || it.title || 'Peça SAGAS',
-      sku: it.sku || `SKU-${idx}`,
-      size: it.size || 'M',
-      color: it.color || 'Padrão',
-      quantity: Number(it.quantity || 1),
-      originalUnitPrice: Number(it.unitPrice || 49.9),
-      finalUnitPrice: Number(it.unitPrice || 49.9),
-      discountAllocated: 0,
-    })),
-    subtotal: Number(raw.total || raw.grossTotal || 0) - Number(raw.shipping || raw.shippingCharged || 0),
-    discount: Number(raw.discountTotal || 0),
-    shippingFee: Number(raw.shipping || raw.shippingCharged || 0),
-    total: Number(raw.total || raw.grossTotal || 0),
-    saleType: 'NORMAL',
-    status: erpStatus,
-    createdAt: raw.createdAt || new Date().toISOString(),
-    trackingNumber: raw.trackingCode || `BR${(raw.orderNumber || '').replace(/\D/g, '') || '94820184'}SP`,
-    trackingCode: raw.trackingCode,
-    deliveryStatus,
-    labelPrinted: ['PACKED', 'SHIPPED', 'DELIVERED'].includes(raw.status),
-  };
-}
+    return {
+      id: raw.id,
+      orderNumber: raw.orderNumber,
+      channel: (raw.channel as MarketplaceChannel) || 'APP_SAGAS',
+      channelOrderId: raw.externalOrderId || raw.orderNumber,
+      customerName: raw.customerName || raw.customer?.fullName || 'Cliente SAGAS',
+      customerDoc: '***.***.***-**',
+      customerPhone: raw.customerPhone || raw.customer?.phone,
+      shippingAddress: {
+        street: raw.address?.street || 'Av. Paulista',
+        number: raw.address?.number || '1578',
+        complement: raw.address?.complement || undefined,
+        neighborhood: raw.address?.neighborhood || 'Bela Vista',
+        city: raw.address?.city || 'São Paulo',
+        state: raw.address?.state || 'SP',
+        zipCode: raw.address?.zipCode || '01310-200',
+      },
+      carrierService: 'CORREIOS_SEDEX',
+      items: (raw.items || []).map((it: any, idx: number) => ({
+        id: it.id || `it-${idx}`,
+        productId: it.productId || it.variationId || `prod-${idx}`,
+        productName: it.name || it.productTitle || it.title || 'Peça SAGAS',
+        sku: it.sku || `SKU-${idx}`,
+        size: it.size || 'Único',
+        color: it.color || 'Padrão',
+        quantity: Number(it.quantity || 1),
+        originalUnitPrice: Number(it.unitPrice || 49.9),
+        finalUnitPrice: Number(it.unitPrice || 49.9),
+        discountAllocated: 0,
+      })),
+      subtotal:
+        Number(raw.total || raw.grossTotal || 0) -
+        Number(raw.shipping || raw.shippingCharged || 0),
+      discount: Number(raw.discountTotal || 0),
+      shippingFee: Number(raw.shipping || raw.shippingCharged || 0),
+      total: Number(raw.total || raw.grossTotal || 0),
+      saleType: 'NORMAL',
+      status: erpStatus,
+      backendStatus: raw.status,
+      createdAt: raw.createdAt || new Date().toISOString(),
+      trackingNumber:
+        raw.trackingCode || `BR${(raw.orderNumber || '').replace(/\D/g, '') || '94820184'}SP`,
+      trackingCode: raw.trackingCode || undefined,
+      deliveryStatus,
+      labelPrinted: ['PACKED', 'SHIPPED', 'DELIVERED'].includes(raw.status),
+    };
+  }
 
   // Carregar dados reais do banco Neon no carregamento
   useEffect(() => {
     async function loadRealData() {
       try {
         const resOrders = await apiClient.get<any>('/api/orders');
-        const rawList = Array.isArray(resOrders) ? resOrders : (resOrders?.data || []);
+        const rawList = Array.isArray(resOrders) ? resOrders : resOrders?.data || [];
         if (Array.isArray(rawList)) {
           const mapped = rawList.map(mapBackendOrderToErpOrder);
           setOrders(mapped);
         }
-      } catch (err) {
-        // mantém inicial
+      } catch {
+        setOrders([]);
       }
 
       try {
         const resCombos = await apiClient.get<any>('/api/combos');
-        const rawCombos = Array.isArray(resCombos) ? resCombos : (resCombos?.data || []);
+        const rawCombos = Array.isArray(resCombos) ? resCombos : resCombos?.data || [];
         if (Array.isArray(rawCombos) && rawCombos.length > 0) {
           setCombos(rawCombos);
         }
-      } catch (err) {
+      } catch {
         // mantém inicial
       }
     }
@@ -191,7 +188,7 @@ function mapBackendOrderToErpOrder(raw: any): Order {
       channel: 'APP_SAGAS',
       action: 'ORDER_PULL',
       status: 'SUCCESS',
-      message: `Pedido #${newOrder.orderNumber} finalizado no App sagas.moda com ${newOrder.comboApplied || 'Combo'}. Estoque reservado e propagado.`,
+      message: `Pedido #${newOrder.orderNumber} finalizado no App sagas.moda. Estoque reservado e propagado.`,
     };
     setLogs((prev) => [newLog, ...prev]);
   };
@@ -204,9 +201,10 @@ function mapBackendOrderToErpOrder(raw: any): Order {
     { label: 'Imprimir Etiquetas 10x15 com DANFE Simplificado', tab: 'logistics' as ActiveTab, section: 'Expedição' },
     { label: 'Acompanhar Rastreamento de Pacotes', tab: 'tracking' as ActiveTab, section: 'Pós-Venda' },
     { label: 'Analisar Indicadores Financeiros e DRE', tab: 'bi_analytics' as ActiveTab, section: 'Financeiro' },
-  ].filter((cmd) =>
-    cmd.label.toLowerCase().includes(commandSearch.toLowerCase()) ||
-    cmd.section.toLowerCase().includes(commandSearch.toLowerCase())
+  ].filter(
+    (cmd) =>
+      cmd.label.toLowerCase().includes(commandSearch.toLowerCase()) ||
+      cmd.section.toLowerCase().includes(commandSearch.toLowerCase())
   );
 
   const tabMeta: Record<ActiveTab, { group: string; title: string }> = {
@@ -218,7 +216,7 @@ function mapBackendOrderToErpOrder(raw: any): Order {
     purchases_fashion: { group: 'Catálogo, Estoque & Margem', title: 'Compras, Fornecedores & Moda BI' },
     combos: { group: 'Comercial & Promoções', title: 'Combos Dinâmicos' },
     flash_sales: { group: 'Comercial & Promoções', title: 'Ofertas Relâmpago' },
-    logistics: { group: 'Expedição & Pós-Venda', title: 'Etiquetas 10x15cm & DANFE Simplificado' },
+    logistics: { group: 'Expedição & Pós-Venda', title: 'Pedidos, Etiquetas 10x15cm & DANFE' },
     tracking: { group: 'Expedição & Pós-Venda', title: 'Rastreamento Unificado' },
     automations: { group: 'Automações & Canais', title: 'Motor de Automações (Quando → Então)' },
     integrations: { group: 'Automações & Canais', title: 'Canais Conectados' },
@@ -237,7 +235,6 @@ function mapBackendOrderToErpOrder(raw: any): Order {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Barra contextual limpa no topo da área de trabalho */}
         <header className="hidden lg:flex h-16 bg-white border-b border-stone-200 px-4 sm:px-8 lg:px-12 items-center justify-between sticky top-0 z-20 w-full">
           <div className="flex items-center gap-2.5">
             <span className="text-stone-400 font-medium text-sm">
@@ -374,7 +371,6 @@ function mapBackendOrderToErpOrder(raw: any): Order {
         </footer>
       </div>
 
-      {/* Command Palette Global (Ctrl+K) */}
       {isCommandPaletteOpen && (
         <div
           className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-start justify-center pt-20 p-4"

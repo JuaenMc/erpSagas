@@ -98,6 +98,7 @@ export interface Product {
   fiscal: FiscalData;
   tags: string[];
   collectionId?: string;
+  isActive?: boolean;
   variations: ProductVariation[];
   channelListings: Record<MarketplaceChannel, ChannelListing>;
   createdAt: string;
@@ -228,7 +229,8 @@ export interface Order {
   total: number;
   comboApplied?: string;
   saleType: 'NORMAL' | 'COMBO' | 'FLASH_SALE';
-  status: 'PENDING_PAYMENT' | 'PROCESSING' | 'LABEL_GENERATED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  status: 'PENDING_PAYMENT' | 'PAID' | 'PROCESSING' | 'LABEL_GENERATED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+  backendStatus?: 'PENDING_PAYMENT' | 'PAID' | 'PICKING' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   createdAt: string;
   trackingNumber: string;
   trackingCode?: string; // Código oficial rastreio

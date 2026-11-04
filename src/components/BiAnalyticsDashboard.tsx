@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import apiClient from '../services/apiClient';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -145,6 +146,37 @@ export const BiAnalyticsDashboard: React.FC = () => {
   // Estado do Simulador de Antecipação de Recebíveis
   const [anticipationAmount, setAnticipationAmount] = useState<number>(15000);
   const [anticipationDays, setAnticipationDays] = useState<number>(21);
+  const [realMetrics, setRealMetrics] = useState<SalesMetricDay[]>(INITIAL_SALES_METRICS_30D);
+  const [topProductsData, setTopProductsData] = useState<{ name: string; qty: number; revenue: number; marginPct: number }[]>([]);
+
+  useEffect(() => {
+    const daysNum = period === '7d' ? 7 : period === '15d' ? 15 : 30;
+    apiClient.get<any>('/api/admin/reports?days=' + daysNum).then((res) => {
+      if (res?.data?.salesByDay) {
+        const mapped: SalesMetricDay[] = res.data.salesByDay.map((d: any) => ({
+          date: d.date,
+          dayLabel: d.date.slice(5),
+          grossRevenue: Number(d.revenue || 0),
+          netRevenue: Number(d.netRevenue || 0),
+          platformFees: Number(d.platformFees || 0),
+          appSales: Number(d.appSales || 0),
+          shopeeSales: Number(d.shopeeSales || 0),
+          mlSales: Number(d.mlSales || 0),
+          tiktokSales: Number(d.tiktokSales || 0),
+          ordersCount: Number(d.orders || 0),
+        }));
+        setRealMetrics(mapped);
+      }
+      if (res?.data?.topProducts) {
+        setTopProductsData(res.data.topProducts.map((tp: any) => ({
+          name: tp.title,
+          qty: Number(tp.quantitySold || 0),
+          revenue: Number(tp.revenue || 0),
+          marginPct: Number(tp.marginPct || 30),
+        })));
+      }
+    }).catch(() => {});
+  }, [period]);
 
   // Multiplicador por CNPJ selecionado
   const cnpjFactor =
@@ -152,7 +184,7 @@ export const BiAnalyticsDashboard: React.FC = () => {
 
   const filteredMetrics = useMemo(() => {
     const days = period === '7d' ? 7 : period === '15d' ? 15 : 30;
-    return INITIAL_SALES_METRICS_30D.slice(-days).map((m) => ({
+    return realMetrics.slice(-days).map((m) => ({
       ...m,
       grossRevenue: Math.round(m.grossRevenue * cnpjFactor * 100) / 100,
       netRevenue: Math.round(m.netRevenue * cnpjFactor * 100) / 100,
@@ -163,7 +195,7 @@ export const BiAnalyticsDashboard: React.FC = () => {
       tiktokSales: Math.round(m.tiktokSales * cnpjFactor * 100) / 100,
       ordersCount: Math.max(1, Math.round(m.ordersCount * cnpjFactor)),
     }));
-  }, [period, cnpjFactor]);
+  }, [period, cnpjFactor, realMetrics]);
 
   // Totais e Cálculos da DRE Gerencial Completa (M13)
   const totals = useMemo(() => {
@@ -233,13 +265,6 @@ export const BiAnalyticsDashboard: React.FC = () => {
     ];
   }, [totals]);
 
-  const topProductsData = [
-    { name: 'Vestido Infantil Floral Algodão', qty: 382, revenue: 19061, marginPct: 34.2 },
-    { name: 'Conjunto Moletom Infantil Flanelado', qty: 295, revenue: 26520, marginPct: 31.8 },
-    { name: 'Vestido Feminino Midi Linho Viscose', qty: 248, revenue: 29735, marginPct: 36.5 },
-    { name: 'Jardineira Unissex Jeans Confort', qty: 189, revenue: 10376, marginPct: 29.4 },
-    { name: 'Kit Família Combinadinho 4 Peças', qty: 142, revenue: 25560, marginPct: 38.1 },
-  ];
 
   // Projeção de Fluxo de Caixa (Próximos 4 Semanas)
   const cashFlowProjection = [
