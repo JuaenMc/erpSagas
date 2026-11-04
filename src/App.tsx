@@ -30,7 +30,7 @@ export default function App() {
   const { products, setProducts, loading: loadingProducts, refetch: refetchProducts, createProduct } = useProducts();
   const [combos, setCombos] = useState<ComboRuleModel[]>(INITIAL_COMBOS);
   const [flashSales, setFlashSales] = useState<FlashSaleModel[]>(INITIAL_FLASH_SALES);
-  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [logs, setLogs] = useState<IntegrationLog[]>(INITIAL_LOGS);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState('');
@@ -138,7 +138,7 @@ function mapBackendOrderToErpOrder(raw: any): Order {
       try {
         const resOrders = await apiClient.get<any>('/api/orders');
         const rawList = Array.isArray(resOrders) ? resOrders : (resOrders?.data || []);
-        if (Array.isArray(rawList) && rawList.length > 0) {
+        if (Array.isArray(rawList)) {
           const mapped = rawList.map(mapBackendOrderToErpOrder);
           setOrders(mapped);
         }

@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "cleanup:demo": "tsx server/scripts/cleanup-demo-data.ts",
+    "cleanup:force": "tsx server/scripts/force-cleanup.ts",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Product, ProductVariation, MarketplaceChannel, ChannelListing } from '../types';
-import { INITIAL_PRODUCTS } from '../data/mockData';
 import apiClient, { ApiResponse } from '../services/apiClient';
 import { profitCalculatorService } from '../services/ProfitCalculatorService';
 
@@ -62,7 +61,7 @@ export function mapDtoToAdminProduct(dto: any): Product {
     sku: v.sku || `${dto.masterSku || 'SKU'}-${index + 1}`,
     barcodeEan13:
       v.barcodeEan13 || `789${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-    stockReal: Number(v.stock ?? v.stockReal ?? v.stockPhysical ?? 15),
+    stockReal: Number(v.stock ?? v.stockReal ?? v.stockPhysical ?? 0),
     stockReserved: Number(v.stockReserved ?? 0),
     price: Number(v.price ?? basePriceNum),
     costPrice: Number(v.costPrice ?? costPriceNum),
@@ -117,7 +116,7 @@ export function mapDtoToAdminProduct(dto: any): Product {
 }
 
 export function useProducts(): UseProductsReturn {
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -130,12 +129,14 @@ export function useProducts(): UseProductsReturn {
       setLoading(true);
       setError(null);
       const res = await apiClient.get<ApiResponse<any[]>>('/api/products');
-      if (res && Array.isArray(res.data) && res.data.length > 0) {
+      if (res && Array.isArray(res.data)) {
         const mapped = res.data.map(mapDtoToAdminProduct);
         setProducts(mapped);
+      } else {
+        setProducts([]);
       }
     } catch {
-      // Fallback silencioso para o catálogo em memória (INITIAL_PRODUCTS) quando o backend não estiver ativo
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -146,46 +147,27 @@ export function useProducts(): UseProductsReturn {
   }, [fetchProducts]);
 
   const createProduct = async (productData: any): Promise<Product> => {
-    try {
-      const res = await apiClient.post<ApiResponse<any>>('/api/products', productData);
-      if (res && res.data) {
-        const newProduct = mapDtoToAdminProduct(res.data);
-        setProducts((prev) => [newProduct, ...prev]);
-        return newProduct;
-      }
-    } catch {
-      // Fallback em memória caso a API externa não esteja acessível
+    const res = await apiClient.post<ApiResponse<any>>('/api/products', productData);
+    if (res && res.data) {
+      const newProduct = mapDtoToAdminProduct(res.data);
+      setProducts((prev) => [newProduct, ...prev]);
+      return newProduct;
     }
-    const localProduct = mapDtoToAdminProduct({
-      id: `prod-${Date.now()}`,
-      ...productData,
-    });
-    setProducts((prev) => [localProduct, ...prev]);
-    return localProduct;
+    throw new Error('Falha ao criar produto no banco de dados');
   };
 
   const updateProduct = async (id: string, productData: any): Promise<Product> => {
-    try {
-      const res = await apiClient.put<ApiResponse<any>>(`/api/products/${id}`, productData);
-      if (res && res.data) {
-        const updated = mapDtoToAdminProduct(res.data);
-        setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
-        return updated;
-      }
-    } catch {
-      // Fallback em memória
+    const res = await apiClient.put<ApiResponse<any>>(`/api/products/${id}`, productData);
+    if (res && res.data) {
+      const updated = mapDtoToAdminProduct(res.data);
+      setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      return updated;
     }
-    const updatedLocal = mapDtoToAdminProduct({ id, ...productData });
-    setProducts((prev) => prev.map((p) => (p.id === id ? updatedLocal : p)));
-    return updatedLocal;
+    throw new Error('Falha ao atualizar produto no banco de dados');
   };
 
   const deleteProduct = async (id: string): Promise<void> => {
-    try {
-      await apiClient.delete(`/api/products/${id}`);
-    } catch {
-      // Fallback em memória
-    }
+    await apiClient.delete(`/api/products/${id}`);
     setProducts((prev) => prev.filter((p) => p.id !== id));
   };
 
